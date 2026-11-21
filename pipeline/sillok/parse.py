@@ -5,8 +5,8 @@
 - level4/front/date: dateOccured type="서기" date="1592-04-13L0"(L0 평달, L1 윤달, 일 미상은 ??),
   type="간지"(일진, 미상은 □□)
 - level5 id = 기사 ID(예: wna_12504013_001). sillok.history.go.kr 원문 링크에 쓴다.
-- level5/front/biblioData/title/mainTitle 은 국사편찬위원회가 단 국문 기사 제목이다.
-  번역 산물일 수 있어 저장하지 않는다(CLAUDE.md 규칙 3, 사용자 확인 전까지).
+- level5/front/biblioData/title/mainTitle 은 국사편찬위원회가 단 국문 기사 제목이다(타 기관 번역 산물).
+  Article.title_ko_ref 로 읽기는 하되, 작업 DB의 검수 참고용 표에만 넣는다. 화면·내보내기 금지.
 
 본문(text) 규칙
 - paragraph는 줄바꿈으로 잇는다.
@@ -73,6 +73,7 @@ class Article:
     text: str
     spans: list[Span] = field(default_factory=list)
     file: str = ""
+    title_ko_ref: str | None = None  # 국편 국문 제목. 검수 참고용, 내보내기 금지
 
     @property
     def url(self) -> str:
@@ -165,7 +166,9 @@ def _article(el5: ET.Element, book: str, date, fname: str) -> Article:
             ))
     text, spans = _article_text(el5.find("text"))
     y, mo, d, leap, g = date if date else (None, None, None, False, None)
-    return Article(el5.get("id"), book, y, mo, d, leap, g, subjects, sources, text, spans, fname)
+    t = el5.find("./front/biblioData/title/mainTitle")
+    title = (t.text or "").strip() or None if t is not None else None
+    return Article(el5.get("id"), book, y, mo, d, leap, g, subjects, sources, text, spans, fname, title)
 
 
 def parse_file(path: str | Path) -> Iterator[Article]:

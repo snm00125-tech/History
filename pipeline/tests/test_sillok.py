@@ -43,6 +43,9 @@ def test_load_fixture(tmp_path):
     rows = dict(con.execute("SELECT id, jdn_status FROM article").fetchall())
     assert rows == {"wzz_10104013_001": "ok", "wzz_101040??_001": "no_day",
                     "wzz_10104101_001": "invalid_date"}  # 1592년에는 윤4월이 없다
+    # 국문 제목은 검수 참고 표에만 있고 article에는 없다
+    assert con.execute("SELECT title FROM ref_title_ko").fetchall() == [("국문 제목은 저장하지 않는다",)]
+    assert "국문" not in con.execute("SELECT group_concat(text) FROM article").fetchone()[0]
     assert con.execute("SELECT jdn FROM article WHERE id='wzz_10104013_001'").fetchone()[0] == 2302669
 
 
@@ -53,3 +56,19 @@ def test_real_seonjo_25():
     assert time.perf_counter() - t < 1.0
     a = next(x for x in arts if x.id == "wna_12504013_001")
     assert a.day_ganji == "壬寅" and a.text.startswith("○十三日壬寅,倭寇至。")
+
+
+def test_ganji_first():
+    from types import SimpleNamespace as N
+    from sillok.load import _date_fields
+    # 선조실록 1592년 9월 1일 朔戊午: 표로는 丁巳 → 하루 뒤로 보정, 검수 대상
+    j, jt, st, d = _date_fields(N(year=1592, month=9, day=1, leap=False, day_ganji="戊午"))
+    assert (j - jt, st, d) == (1, "ganji_adjusted", 1)
+    # 표에 없는 날(1602년 8월 30일 己未)도 일진으로 잡는다
+    j, jt, st, d = _date_fields(N(year=1602, month=8, day=30, leap=False, day_ganji="己未"))
+    assert jt is None and st == "ganji_adjusted" and j is not None
+    # 99일 같은 깨진 날짜는 보정하지 않는다
+    assert _date_fields(N(year=1569, month=12, day=99, leap=False, day_ganji="甲子"))[2] == "invalid_date"
+    # 子/午 같은 오기(30일 차이)는 옮기지 않고 충돌로 표시
+    j, jt, st, d = _date_fields(N(year=1592, month=4, day=13, leap=False, day_ganji="壬申"))
+    assert (j, jt, st, d) == (2302669, 2302669, "ganji_conflict", -30)
