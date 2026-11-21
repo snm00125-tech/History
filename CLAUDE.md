@@ -6,9 +6,12 @@
 
 1. **모든 기록은 율리우스적일(JDN, 정수)에 매단다.** 화면에는 양력·음력·왕력·간지를 함께 표시한다.
 2. **양력 표기**: JDN 2299161(1582-10-15) 이후는 그레고리력, 이전은 율리우스력. 역산 그레고리력은 쓰지 않는다.
-3. **타 기관 번역문은 저장하지도, 화면에 싣지도 않는다.** 원문(한문)에서 자체 요약을 만들고 원문 링크를 건다.
-   - 수집 단계에서도 번역문 필드는 버린다. 작업 DB에 넣지 않는다.
-   - 예외(사용자 결정): 국편 국문 기사 제목만 작업 DB의 `ref_title_ko` 표에 **검수 참고용**으로 둔다. 화면·내보내기·요약 입력에는 절대 쓰지 않는다.
+3. **개인판(사용자 혼자 쓰는 앱)이므로 타 기관 번역문·국문 제목을 저장하고 화면에 실어도 된다** (사용자 결정, 2026-11-21. 이전 규칙 "번역문 금지"를 대체).
+   - 출처를 항상 함께 표시한다(예: 국사편찬위원회 국문 제목, 한국고전번역원 번역).
+   - 수집은 공식 경로만 쓴다: 공공데이터 파일, 공개 API. 자동 접속을 막은 사이트(robots.txt 금지, 방화벽 차단)는 우회하거나 긁지 않는다.
+     sillok.history.go.kr은 방화벽 차단, db.itkc.or.kr은 robots.txt 전체 금지(단 `/openapi/search`는 키 없이 열려 있고 기사명·번역 일부만 준다).
+   - 국편 국문 기사 제목(`ref_title_ko`)은 화면·내보내기에 써도 된다. 자체 요약을 만들 때는 여전히 원문만 보고 쓴다(요약 입력에 번역문을 넣지 않는다).
+   - 이 앱을 공개 배포하게 되면 이 규칙을 다시 정한다.
 4. **요약 = 원문에 있는 사실만.** 배경 설명은 **해설**에 따로 쓴다. 요약 문장마다 **근거 구절 위치**(기사 ID + 원문 문자 오프셋)를 저장한다.
 5. **요약과 해설은 구축 단계에서 미리 만들어 저장한다.** 서비스에는 실시간 AI 호출이 없다.
 6. **기능을 고친 뒤에는 매번 오류와 속도를 점검한다.** (`pytest`가 정확성과 속도 테스트를 함께 돈다.)
@@ -51,10 +54,11 @@ web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는
   (atchFileId는 데이터 갱신 때 바뀐다. 상세 페이지 `/tcs/dss/selectFileDataDownload.do`에서 새로 얻는다.)
 - 파일 `2nd_<실록ID>_<NNN>.xml`. wna=선조실록, wnb=선조수정실록. 계층은 level2 연 > level3 월 > level4 일(일진) > level5 기사.
 - 기사 ID(level5 id)를 sillok.history.go.kr/id/<ID> 원문 링크로 쓴다.
-- level5의 국문 기사 제목(mainTitle)은 국편의 번역 산물이다. `ref_title_ko`에만 둔다(검수 대조용, 내보내기 금지).
+- level5의 국문 기사 제목(mainTitle)은 국편의 번역 산물이다. `ref_title_ko`에 둔다. 규칙 3 변경으로 화면·내보내기에 써도 된다(출처 표시).
 - 선조수정실록(wnb)은 별도 출처로 선조실록(wna)과 함께 표시한다(`article.book`).
 - 본문의 원주·교감주·사론·색인(인명·지명 등)·외자(〓)는 `span` 표에 위치(문자 오프셋)로 남긴다.
-- 작업 DB: `pipeline/data/work.sqlite` (git 제외). 표 `article`과 `span`. `jdn_status`는 기사 일진과 계산 일진을 대조한 결과다.
+- 작업 DB: `pipeline/data/work.sqlite` (git 제외). **실록 전체 380,974건**(태조~철종 + 고종·순종 원문 파일 포함, 적재 약 4분). 표 `article`과 `span`.
+  모든 기사에 국편 국문 제목(`ref_title_ko`)이 있다 → 화면 제목으로 바로 쓴다. 날짜 ok 99.2%. `jdn_status`는 기사 일진과 계산 일진을 대조한 결과다.
 
 ### 날짜 확정: 일진 우선 (사용자 결정)
 
@@ -118,7 +122,7 @@ web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는
 
 ```
 cd pipeline && python3 -m pytest -q --durations=5
-cd pipeline && python3 -m sillok.load data/raw/sillok_15053647/x data/work.sqlite wna wnb   # 적재 (약 8초)
+cd pipeline && python3 -m sillok.load data/raw/sillok_15053647/x data/work.sqlite            # 전체 적재 (약 4분, 그 뒤 summaries/*.jsonl 재적재)
 cd pipeline && python3 -m sillok.validate data/raw/sillok_15053647/x wna wnb             # 일진 대조
 cd pipeline && python3 -m sillok.report data/work.sqlite 1592 1598                        # 월별 집계
 cd pipeline && python3 -m sillok.summary data/work.sqlite summaries/pilot_1592_04.jsonl  # 요약 검증·적재
@@ -128,6 +132,8 @@ cd pipeline && .venv/bin/python -m sillok.generate submit|status|collect|retry d
 ```
 
 ## 작업 원칙
+
+- 개인판이므로 프로젝트 규칙은 앱 구현이 쉬워지는 쪽으로 바꿔도 된다(사용자 결정). 바꾼 규칙은 이 파일에 적는다. 단 외부 사이트의 접근 차단(방화벽·robots.txt)은 우회하지 않는다.
 
 - 사용자에게 보내는 작업 중 설명과 결과 보고는 모두 한국어로 쓴다.
 - 내려받은 원자료는 `pipeline/data/raw/`에 두고 git에 넣지 않는다. 신뢰할 수 없는 데이터로 다룬다. 원자료 디렉터리 안에서 스크립트를 실행하지 않는다.
