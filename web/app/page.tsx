@@ -1,0 +1,110 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { type Index, type OtdItem, loadIndex, loadOtd } from "@/lib/data";
+
+function todayMd() {
+  const d = new Date();
+  return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export default function Home() {
+  const router = useRouter();
+  const [idx, setIdx] = useState<Index | null>(null);
+  const [md, setMd] = useState(todayMd);
+  const [otd, setOtd] = useState<OtdItem[] | null>(null);
+  const [date, setDate] = useState("1592-05-23");
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    loadIndex().then(setIdx).catch((e) => setErr(String(e)));
+  }, []);
+  useEffect(() => {
+    setOtd(null);
+    loadOtd(md).then(setOtd).catch(() => setOtd([]));
+  }, [md]);
+
+  function go(e: React.FormEvent) {
+    e.preventDefault();
+    const m = /^(\d{3,4})-(\d{1,2})-(\d{1,2})$/.exec(date.trim());
+    if (!m) return setErr("날짜를 1592-05-23처럼 적어 주세요");
+    const ym = `${m[1].padStart(4, "0")}-${m[2].padStart(2, "0")}`;
+    router.push(`/view/?ym=${ym}&d=${Number(m[3])}`);
+  }
+
+  const [mm, dd] = md.split("-").map(Number);
+  const books = idx?.books ?? {};
+  return (
+    <div className="home">
+      {err && <p className="error">{err}</p>}
+      {idx && (
+        <p className="stats">
+          기사 {idx.total.toLocaleString()}건 · 요약 {idx.summarized.toLocaleString()}건 · {idx.months.length.toLocaleString()}개월
+        </p>
+      )}
+
+      <section className="panel">
+        <h2>날짜로 찾기</h2>
+        <form onSubmit={go} className="datejump">
+          <input value={date} onChange={(e) => setDate(e.target.value)} aria-label="양력 날짜" placeholder="1592-05-23" />
+          <button type="submit">보기</button>
+        </form>
+        <p className="hint">양력 날짜 (1582년 10월 15일 이전은 율리우스력)</p>
+      </section>
+
+      <section className="panel">
+        <h2>왕별로 보기</h2>
+        <div className="kings">
+          {idx?.kings.map((k) => (
+            <Link key={k.king} href={`/view/?ym=${k.first}`} className="king">
+              {k.king}
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="otd-head">
+          <h2>
+            오늘의 실록 · {mm}월 {dd}일
+          </h2>
+          <input type="date" onChange={(e) => e.target.value && setMd(e.target.value.slice(5))} aria-label="월일 바꾸기" />
+        </div>
+        {!otd && <p className="hint">불러오는 중…</p>}
+        {otd && otd.length === 0 && <p className="hint">이 날짜의 기사가 없습니다.</p>}
+        {otd && otd.length > 0 && (
+          <>
+            <p className="hint">
+              양력 {mm}월 {dd}일의 기사 {otd.length.toLocaleString()}건
+            </p>
+            <ul className="otd">
+              {Object.entries(
+                otd.reduce<Record<string, OtdItem[]>>((acc, it) => {
+                  (acc[it.y] ??= []).push(it);
+                  return acc;
+                }, {}),
+              ).map(([y, items]) => (
+                <li key={y}>
+                  <Link href={`/view/?ym=${y}-${String(mm).padStart(2, "0")}&d=${dd}`} className="otd-year">
+                    {Number(y)}년
+                  </Link>
+                  <span className="otd-titles">
+                    {items.slice(0, 3).map((it) => (
+                      <span key={it.id}>
+                        {it.t}
+                        <em> · {books[it.b] ?? it.b}</em>
+                      </span>
+                    ))}
+                    {items.length > 3 && <span className="more">외 {items.length - 3}건</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
+    </div>
+  );
+}

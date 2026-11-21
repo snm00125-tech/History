@@ -73,7 +73,8 @@ class Article:
     text: str
     spans: list[Span] = field(default_factory=list)
     file: str = ""
-    title_ko_ref: str | None = None  # 국편 국문 제목. 검수 참고용, 내보내기 금지
+    title_ko_ref: str | None = None  # 국편 국문 제목 (규칙 3 변경으로 화면에 씀)
+    regnal_src: str | None = None  # 원자료 재위연도 표기 (예: '고종 33년 1월 1일')
 
     @property
     def url(self) -> str:
@@ -136,8 +137,11 @@ def _article_text(text_el: ET.Element | None) -> tuple[str, list[Span]]:
     return txt, sorted(tb.spans, key=lambda s: (s.start, -s.end))
 
 
+SOLAR = "陽曆"
+
+
 def _parse_date(front: ET.Element | None):
-    """level4 front → (year, month, day|None, leap, ganji|None). 날짜 없으면 None."""
+    """level4 front → (year, month, day|None, leap, ganji|'陽曆'|None, 재위연도 표기|None). 날짜 없으면 None."""
     if front is None:
         return None
     d = front.find("./biblioData/date/dateOccured[@type='서기']")
@@ -149,8 +153,11 @@ def _parse_date(front: ET.Element | None):
     y, mo, dd, lp = m.groups()
     g = front.find("./biblioData/date/dateOccured[@type='간지']")
     gt = (g.text or "").strip() if g is not None else ""
-    ganji = gt if len(gt) == 2 and "□" not in gt else None
-    return int(y), int(mo), None if dd == "??" else int(dd), lp == "1", ganji
+    # 고종 33년(1896)부터는 양력: 간지 칸에 '陽曆'이 적히고 서기 날짜가 그레고리력이다
+    ganji = gt if (len(gt) == 2 and "□" not in gt) or gt == SOLAR else None
+    r = front.find("./biblioData/date/dateOccured[@type='재위연도']")
+    reg = (r.text or "").strip() or None if r is not None else None
+    return int(y), int(mo), None if dd == "??" else int(dd), lp == "1", ganji, reg
 
 
 def _article(el5: ET.Element, book: str, date, fname: str) -> Article:
@@ -165,10 +172,10 @@ def _article(el5: ET.Element, book: str, date, fname: str) -> Article:
                 pg.get("begin", "") if pg is not None else "",
             ))
     text, spans = _article_text(el5.find("text"))
-    y, mo, d, leap, g = date if date else (None, None, None, False, None)
+    y, mo, d, leap, g, reg = date if date else (None, None, None, False, None, None)
     t = el5.find("./front/biblioData/title/mainTitle")
     title = (t.text or "").strip() or None if t is not None else None
-    return Article(el5.get("id"), book, y, mo, d, leap, g, subjects, sources, text, spans, fname, title)
+    return Article(el5.get("id"), book, y, mo, d, leap, g, subjects, sources, text, spans, fname, title, reg)
 
 
 def parse_file(path: str | Path) -> Iterator[Article]:

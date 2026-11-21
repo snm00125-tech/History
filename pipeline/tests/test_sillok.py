@@ -85,3 +85,15 @@ def test_month_precision_book():
     a = N(year=1592, month=4, day=14, leap=False)
     assert _precision(a, "wnb", 2302670) == ("month", 2302657, 2302686)
     assert _precision(a, "wna", 2302670) == ("day", 2302670, 2302670)
+
+
+def test_solar_dates_from_1896():
+    """고종 33년(1896)부터는 양력: 간지 칸이 '陽曆'이고 서기 날짜를 그레고리력으로 읽는다."""
+    from types import SimpleNamespace as N
+    from hdate.calendar import solar_to_jdn
+    from sillok.load import _date_fields, _precision
+    a = N(year=1896, month=1, day=1, leap=False, day_ganji="陽曆")
+    j, jt, st, d = _date_fields(a)
+    assert (j, st) == (solar_to_jdn(1896, 1, 1), "solar")
+    a2 = N(year=1896, month=2, day=None, leap=False, day_ganji="陽曆")
+    assert _precision(a2, "wza", None) == ("month", solar_to_jdn(1896, 2, 1), solar_to_jdn(1896, 2, 29))

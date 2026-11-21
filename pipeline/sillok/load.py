@@ -14,10 +14,11 @@ import sys
 import time
 
 from hdate import ganji, lunar_to_jdn
-from hdate.lunar import month_length
+from hdate.calendar import solar_to_jdn
+from hdate.lunar import jdn_to_lunar, month_length
 
 from .category import groups_of, split_subject
-from .parse import iter_files, parse_file
+from .parse import SOLAR, iter_files, parse_file
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS article (
@@ -35,7 +36,8 @@ CREATE TABLE IF NOT EXISTS article (
   text TEXT NOT NULL,           -- 원문(한문)
   subjects TEXT NOT NULL,       -- JSON 배열 (분류)
   sources TEXT NOT NULL,        -- JSON 배열 [판본, 쪽]
-  file TEXT NOT NULL
+  file TEXT NOT NULL,
+  regnal_src TEXT               -- 원자료 재위연도 표기 (고종·순종은 이것을 화면 왕력으로 씀)
 );
 CREATE INDEX IF NOT EXISTS article_jdn ON article(jdn);
 CREATE INDEX IF NOT EXISTS article_range ON article(jdn_start, jdn_end);
@@ -74,6 +76,12 @@ def _date_fields(a):
         return None, None, "no_date", None
     if a.day is None:
         return None, None, "no_day", None
+    if a.day_ganji == SOLAR:  # 양력 날짜(1896~): 일진 대조 없이 그대로
+        try:
+            j = solar_to_jdn(a.year, a.month, a.day)
+        except ValueError:
+            return None, None, "invalid_date", None
+        return j, j, "solar", 0
     try:
         jt = lunar_to_jdn(a.year, a.month, a.day, a.leap)
     except ValueError:
@@ -102,6 +110,13 @@ def _precision(a, book: str, jdn):
     """→ (precision, jdn_start, jdn_end)"""
     if a.year is None:
         return "none", None, None
+    if getattr(a, "day_ganji", None) == SOLAR and a.day is None:
+        try:
+            start = solar_to_jdn(a.year, a.month, 1)
+            end = (solar_to_jdn(a.year + 1, 1, 1) if a.month == 12 else solar_to_jdn(a.year, a.month + 1, 1)) - 1
+        except ValueError:
+            return "none", None, None
+        return "month", start, end
     if book in MONTH_PRECISION_BOOKS or a.day is None:
         try:
             start = lunar_to_jdn(a.year, a.month, 1, a.leap)
@@ -127,16 +142,20 @@ def load(src_dir: str, db_path: str, books=None) -> dict:
             for a in parse_file(f):
                 j, jt, st, d = _date_fields(a)
                 review = int(st in ("ganji_adjusted", "ganji_conflict", "invalid_date"))
-                rows.append((a.id, book, a.year, a.month, int(a.leap), a.day, a.day_ganji, j, jt, st, d, review,
+                ly, lm, lleap, lday = a.year, a.month, a.leap, a.day
+                if a.day_ganji == SOLAR and j is not None:  # 음력 칸은 양력 날짜를 음력으로 바꿔 채운다
+                    lu = jdn_to_lunar(j)
+                    ly, lm, lleap, lday = lu.year, lu.month, lu.leap, lu.day
+                rows.append((a.id, book, ly, lm, int(lleap), lday, a.day_ganji, j, jt, st, d, review,
                              *_precision(a, book, j),
                              a.text, json.dumps(a.subjects, ensure_ascii=False),
-                             json.dumps(a.sources, ensure_ascii=False), f.name))
+                             json.dumps(a.sources, ensure_ascii=False), f.name, a.regnal_src))
                 spans += [(a.id, s.kind, s.start, s.end, s.ref) for s in a.spans]
                 subs += [(a.id, x, *split_subject(x)) for x in a.subjects]
                 grps += [(a.id, g, i) for i, g in enumerate(groups_of(a.subjects))]
                 if a.title_ko_ref:
                     titles.append((a.id, a.title_ko_ref))
-            con.executemany("INSERT INTO article VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+            con.executemany("INSERT INTO article VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
             con.executemany("INSERT INTO span VALUES (?,?,?,?,?)", spans)
             con.executemany("INSERT INTO ref_title_ko VALUES (?,?)", titles)
             con.executemany("INSERT INTO subject VALUES (?,?,?,?)", subs)
