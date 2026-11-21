@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { type Article, REVIEW_LABEL, sillokUrl } from "@/lib/data";
+import { type Article, REVIEW_LABEL, sourceSite, sourceUrl } from "@/lib/data";
 
 export function ArticleCard({
   a,
@@ -52,8 +52,8 @@ export function ArticleCard({
             <h4>원문</h4>
             <p className="hanmun">{a.x}</p>
           </section>
-          <a className="ext" href={sillokUrl(a.id)} target="_blank" rel="noreferrer">
-            국사편찬위원회 실록 사이트에서 번역 보기 ↗
+          <a className="ext" href={sourceUrl(a.id)} target="_blank" rel="noreferrer">
+            {sourceSite(a.id)}에서 보기 ↗
           </a>
         </div>
       )}

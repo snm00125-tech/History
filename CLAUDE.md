@@ -124,7 +124,11 @@ web/             Next.js + TypeScript 정적 사이트(output: export). public/d
   기사: 국편 국문 제목, 분류, 원문, 자체 요약(있으면), 검수 표시. 고종·순종은 원자료 재위연도 표기를 왕력으로 쓴다.
 - 고종·순종실록(15053646, 공공누리 4유형): 1896년(고종 33)부터 양력 날짜(간지 칸 '陽曆') → `jdn_status='solar'`. 고종 1874·1875·1893년 일진 불일치 192건은 원자료 머리 일진 오류로 보여 표 날짜 유지.
 - 화면: `/`(날짜로 찾기, 왕별, 오늘의 실록), `/view/?ym=YYYY-MM&d=D`(달력 + 그날 기사, 분류 필터, 펼치면 요약·원문·실록 사이트 링크).
-- 전체 기사 413,771건(태조~순종 부록), 6,399개월.
+- 전체 기사 507,299건 = 실록 413,771(태조~순종 부록) + 비변사등록 93,528, 6,399개월. 요약은 1592년만(사용자 결정: 나머지는 국편 제목만).
+- 비변사등록(15053636, `sillok/load_bb.py`, book=bb): level4 단위, 음력 날짜(일 00이면 month), 일진 없음(no_ganji). 링크는 db.history.go.kr/id/<ID>.
+- 더 받아 둔 자료: 한국사료총서(15053632, 쇄미록·임진기록·용사잡록·매천야록·윤치호일기 등 122책, 날짜가 제목·본문 속에만 있어 아직 미적재), 각사등록(15053638, 날짜 필드 없음, 미적재).
+  난중일기·징비록은 공공데이터에 없다.
+- 글꼴: Pretendard(npm `pretendard`, 사이트에 내장).
 
 ## 명령
 
@@ -138,6 +142,7 @@ cd pipeline && python3 -m sillok.review data/work.sqlite reports/pilot_1592_04_r
 cd pipeline && .venv/bin/python -m sillok.generate prepare data/work.sqlite t1592_05 --years 1592 1592 --months 5  # 요청 준비
 cd pipeline && .venv/bin/python -m sillok.generate submit|status|collect|retry data/work.sqlite t1592_05
 cd pipeline && python3 -m sillok.load data/raw/sillok_15053646/x data/work.sqlite            # 고종·순종 추가 적재 (약 40초)
+cd pipeline && python3 -m sillok.load_bb data/raw/khdb_15053636/x data/work.sqlite          # 비변사등록 적재 (약 6초)
 cd pipeline && python3 -m sillok.export data/work.sqlite ../web/public/data                 # 웹 데이터 내보내기
 cd web && npm install && npm run dev        # 개발 서버 :3000
 cd web && npm run build                     # 정적 사이트 → web/out

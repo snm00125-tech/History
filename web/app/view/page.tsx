@@ -27,6 +27,7 @@ function ViewInner() {
   const [mf, setMf] = useState<MonthFile | null>(null);
   const [missing, setMissing] = useState(false);
   const [filter, setFilter] = useState<string | null>(null);
+  const [bookFilter, setBookFilter] = useState<string | null>(null);
 
   useEffect(() => {
     loadIndex().then(setIdx);
@@ -78,7 +79,14 @@ function ViewInner() {
 
   const books = idx?.books ?? {};
   const groups = idx?.groups ?? {};
-  const shown = (sel?.articles ?? []).filter((a) => !filter || a.g.includes(filter));
+  const shown = (sel?.articles ?? []).filter(
+    (a) => (!filter || a.g.includes(filter)) && (!bookFilter || a.b === bookFilter),
+  );
+  const bookCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    sel?.articles.forEach((a) => (c[a.b] = (c[a.b] ?? 0) + 1));
+    return c;
+  }, [sel]);
   const groupCounts = useMemo(() => {
     const c: Record<string, number> = {};
     sel?.articles.forEach((a) => a.g.forEach((g) => (c[g] = (c[g] ?? 0) + 1)));
@@ -156,6 +164,18 @@ function ViewInner() {
               ▶
             </button>
           </div>
+          {Object.keys(bookCounts).length > 1 && (
+            <div className="filters">
+              <button className={!bookFilter ? "on" : ""} onClick={() => setBookFilter(null)}>
+                모든 자료
+              </button>
+              {Object.entries(bookCounts).map(([b, n]) => (
+                <button key={b} className={bookFilter === b ? "on" : ""} onClick={() => setBookFilter(b)}>
+                  {books[b] ?? b} {n}
+                </button>
+              ))}
+            </div>
+          )}
           {Object.keys(groupCounts).length > 1 && (
             <div className="filters">
               <button className={!filter ? "on" : ""} onClick={() => setFilter(null)}>
@@ -177,7 +197,7 @@ function ViewInner() {
       {mf && mf.monthly.length > 0 && (
         <section className="monthly">
           <h3>이 달에 몰아 적은 기사 ({mf.monthly.length}건)</h3>
-          <p className="hint">선조수정실록처럼 한 달 치를 한 날에 모아 적었거나, 날짜를 알 수 없는 기사입니다.</p>
+          <p className="hint">선조수정실록처럼 한 달 치를 한 날에 모아 적었거나, 비변사등록 좌목처럼 달 단위로 적은 기사입니다.</p>
           {mf.monthly.map((a) => (
             <ArticleCard key={a.id} a={a} books={books} groups={groups} />
           ))}

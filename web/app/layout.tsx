@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "조선왕조실록 날짜별 보기",
-  description: "조선왕조실록 기사를 날짜별로 보는 개인용 타임라인",
+  title: "조선 기록 날짜별 보기",
+  description: "조선왕조실록·비변사등록 등 조선 기록을 날짜별로 보는 개인용 타임라인",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -13,12 +14,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <header className="top">
           <Link href="/" className="brand">
-            조선왕조실록 <span>날짜별 보기</span>
+            조선 기록 <span>날짜별 보기</span>
           </Link>
         </header>
         <main>{children}</main>
         <footer className="foot">
-          원문·국문 제목: 국사편찬위원회 조선왕조실록(공공데이터포털). 요약은 이 앱에서 원문을 보고 만든 것이다. 개인용.
+          원문·국문 제목: 국사편찬위원회 조선왕조실록·한국사데이터베이스(공공데이터포털). 요약은 이 앱에서 원문을 보고 만든 것이다. 개인용.
         </footer>
       </body>
     </html>
