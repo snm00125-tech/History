@@ -47,6 +47,11 @@ def test_load_fixture(tmp_path):
     assert con.execute("SELECT title FROM ref_title_ko").fetchall() == [("국문 제목은 저장하지 않는다",)]
     assert "국문" not in con.execute("SELECT group_concat(text) FROM article").fetchone()[0]
     assert con.execute("SELECT jdn FROM article WHERE id='wzz_10104013_001'").fetchone()[0] == 2302669
+    prec = {r[0]: r[1:] for r in con.execute("SELECT id, date_precision, jdn_start, jdn_end FROM article")}
+    assert prec["wzz_10104013_001"] == ("day", 2302669, 2302669)
+    s0 = 2302669 - 12  # 1592년 4월 1일
+    assert prec["wzz_101040??_001"] == ("month", s0, s0 + 29)  # 일 미상 → 그달 (4월은 30일)
+    assert prec["wzz_10104101_001"] == ("none", None, None)    # 없는 윤4월
 
 
 @pytest.mark.skipif(not (RAW / "2nd_wna_125.xml").exists(), reason="원자료 없음")
@@ -72,3 +77,11 @@ def test_ganji_first():
     # 子/午 같은 오기(30일 차이)는 옮기지 않고 충돌로 표시
     j, jt, st, d = _date_fields(N(year=1592, month=4, day=13, leap=False, day_ganji="壬申"))
     assert (j, jt, st, d) == (2302669, 2302669, "ganji_conflict", -30)
+
+
+def test_month_precision_book():
+    from types import SimpleNamespace as N
+    from sillok.load import _precision
+    a = N(year=1592, month=4, day=14, leap=False)
+    assert _precision(a, "wnb", 2302670) == ("month", 2302657, 2302686)
+    assert _precision(a, "wna", 2302670) == ("day", 2302670, 2302670)

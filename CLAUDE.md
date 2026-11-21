@@ -67,6 +67,14 @@ web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는
   선조수정실록 1592년 3월 3일은 머리 일진이 甲子이지만, 본문 교감주는 癸亥다. 머리 일진이 틀린 경우도 있으니 검수 때 본문과 대조한다.
 - 1592~1598 현황: 선조실록 ok 10,884 / adjusted 108 / 일 미상 7, 수정실록 ok 512 / adjusted 5 / conflict 2.
 
+### 날짜 정밀도 (사용자 결정)
+
+- `date_precision` = day | month | none, 범위 `jdn_start`~`jdn_end`. 타임라인 배치는 이 값을 쓴다.
+- **선조수정실록(wnb)은 전부 month.** 수정실록은 그달 기사를 한 날(대개 초하루)에 몰아 적는다(432개월 중 418개월).
+  예: 1592년 4월 29건이 모두 14일자인데 내용은 14~30일. 화면에는 그달 칸에 따로 보여 준다.
+- 일 미상(`??`) 기사도 month. day면 jdn_start = jdn_end = jdn.
+- 달 단위로 적는 실록이 더 나오면 `sillok/load.py`의 `MONTH_PRECISION_BOOKS`에 넣는다.
+
 ## 분류 `sillok/category.py`
 
 - 국편 subjectClass 원본은 `subject` 표에 그대로 둔다(번역문 아님, 메타데이터).

@@ -14,6 +14,7 @@ import sys
 import time
 
 from hdate import ganji, lunar_to_jdn
+from hdate.lunar import month_length
 
 from .category import groups_of, split_subject
 from .parse import iter_files, parse_file
@@ -29,12 +30,15 @@ CREATE TABLE IF NOT EXISTS article (
   jdn_status TEXT NOT NULL,     -- ok | ganji_adjusted | ganji_conflict | no_ganji | no_day | no_date | invalid_date
   ganji_delta INTEGER,          -- 일진 기준 차이(일). adjusted면 jdn - jdn_table
   needs_review INTEGER NOT NULL DEFAULT 0,
+  date_precision TEXT NOT NULL, -- day | month | none. 타임라인은 이 값과 jdn_start..jdn_end로 배치
+  jdn_start INTEGER, jdn_end INTEGER,  -- day면 둘 다 jdn, month면 그달 첫날~끝날
   text TEXT NOT NULL,           -- 원문(한문)
   subjects TEXT NOT NULL,       -- JSON 배열 (분류)
   sources TEXT NOT NULL,        -- JSON 배열 [판본, 쪽]
   file TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS article_jdn ON article(jdn);
+CREATE INDEX IF NOT EXISTS article_range ON article(jdn_start, jdn_end);
 CREATE INDEX IF NOT EXISTS article_lunar ON article(book, lunar_year, lunar_month, lunar_leap);
 CREATE TABLE IF NOT EXISTS span (
   article_id TEXT NOT NULL REFERENCES article(id),
@@ -57,6 +61,9 @@ CREATE TABLE IF NOT EXISTS ref_title_ko (
 );
 """
 
+
+# 달 단위로 묶어 한 날(대개 초하루)에 적는 실록: 기사 날짜를 '그달'로만 쓴다 (사용자 결정)
+MONTH_PRECISION_BOOKS = frozenset({"wnb"})
 
 MAX_ADJUST = 2  # 역법 차이(달 대소·초하루 차이)로 볼 최대 일수
 
@@ -91,6 +98,21 @@ def _date_fields(a):
     return j, jt, status, (j - jt) if jt is not None else None
 
 
+def _precision(a, book: str, jdn):
+    """→ (precision, jdn_start, jdn_end)"""
+    if a.year is None:
+        return "none", None, None
+    if book in MONTH_PRECISION_BOOKS or a.day is None:
+        try:
+            start = lunar_to_jdn(a.year, a.month, 1, a.leap)
+        except ValueError:
+            return "none", None, None
+        return "month", start, start + month_length(a.year, a.month, a.leap) - 1
+    if jdn is None:
+        return "none", None, None
+    return "day", jdn, jdn
+
+
 def load(src_dir: str, db_path: str, books=None) -> dict:
     con = sqlite3.connect(db_path)
     con.executescript(SCHEMA)
@@ -106,6 +128,7 @@ def load(src_dir: str, db_path: str, books=None) -> dict:
                 j, jt, st, d = _date_fields(a)
                 review = int(st in ("ganji_adjusted", "ganji_conflict", "invalid_date"))
                 rows.append((a.id, book, a.year, a.month, int(a.leap), a.day, a.day_ganji, j, jt, st, d, review,
+                             *_precision(a, book, j),
                              a.text, json.dumps(a.subjects, ensure_ascii=False),
                              json.dumps(a.sources, ensure_ascii=False), f.name))
                 spans += [(a.id, s.kind, s.start, s.end, s.ref) for s in a.spans]
@@ -113,7 +136,7 @@ def load(src_dir: str, db_path: str, books=None) -> dict:
                 grps += [(a.id, g, i) for i, g in enumerate(groups_of(a.subjects))]
                 if a.title_ko_ref:
                     titles.append((a.id, a.title_ko_ref))
-            con.executemany("INSERT INTO article VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+            con.executemany("INSERT INTO article VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
             con.executemany("INSERT INTO span VALUES (?,?,?,?,?)", spans)
             con.executemany("INSERT INTO ref_title_ko VALUES (?,?)", titles)
             con.executemany("INSERT INTO subject VALUES (?,?,?,?)", subs)

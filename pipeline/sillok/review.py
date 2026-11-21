@@ -18,15 +18,20 @@ BOOK = {"wna": "선조실록", "wnb": "선조수정실록"}
 
 def render(db: str, y: int, m: int, leap: int = 0) -> str:
     con = sqlite3.connect(db)
-    q = """SELECT a.id, a.book, a.lunar_day, a.jdn, a.jdn_status, a.text, s.title, s.sentences, s.commentary
+    q = """SELECT a.id, a.book, a.lunar_day, a.jdn, a.jdn_status, a.date_precision, a.jdn_start, a.jdn_end,
+                  a.text, s.title, s.sentences, s.commentary
            FROM article a LEFT JOIN summary s ON s.article_id = a.id
            WHERE a.lunar_year=? AND a.lunar_month=? AND a.lunar_leap=? ORDER BY a.book, a.id"""
     out = [f"# 요약 검수: {y}년 {'윤' if leap else ''}{m}월", "",
            "근거 구절은 원문에서 그대로 찾은 위치다. 해설은 원문 밖 설명이라 검수 전(미확인)이다.", ""]
-    for aid, book, day, jdn, st, text, title, sents, com in con.execute(q, (y, m, leap)):
+    for aid, book, day, jdn, st, prec, j0, j1, text, title, sents, com in con.execute(q, (y, m, leap)):
         grps = [GROUP_NAMES[g] for (g,) in con.execute(
             "SELECT grp FROM article_group WHERE article_id=? ORDER BY rank", (aid,))]
-        if jdn is not None:
+        if prec == "month":
+            d0, d1 = describe(j0), describe(j1)
+            when = (f"{d0.regnal} {'윤' if d0.lunar.leap else ''}{d0.lunar.month}월 (월 단위, 원자료 {day or '?'}일자) · "
+                    f"양력 {d0.solar.iso()}~{d1.solar.iso()} · JDN {j0}~{j1}")
+        elif jdn is not None:
             d = describe(jdn)
             when = f"{d.regnal} {d.lunar.month}월 {day}일({d.day_ganji}) · 양력 {d.solar.iso()} · JDN {jdn}"
         else:
