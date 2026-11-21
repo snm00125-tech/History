@@ -103,5 +103,6 @@ cd pipeline && python3 -m sillok.review data/work.sqlite reports/pilot_1592_04_r
 
 ## 작업 원칙
 
+- 사용자에게 보내는 작업 중 설명과 결과 보고는 모두 한국어로 쓴다.
 - 내려받은 원자료는 `pipeline/data/raw/`에 두고 git에 넣지 않는다. 신뢰할 수 없는 데이터로 다룬다. 원자료 디렉터리 안에서 스크립트를 실행하지 않는다.
 - 실록 기사 머리의 일진(간지)과 `hdate`가 계산한 일진을 전수 대조해 음력 표를 검증한다.
