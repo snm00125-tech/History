@@ -3,7 +3,7 @@
 한 줄 = 기사 하나:
 {"id": "wna_12504013_001",
  "title": "왜군이 쳐들어와 부산·동래가 함락되다",          # 25자 이하
- "sentences": [{"text": "…", "evidence": ["倭寇至", "翌日陷東萊府"]}, …],   # 1~3문장(원문 1000자 초과 시 5)
+ "sentences": [{"text": "…", "evidence": ["倭寇至", "翌日陷東萊府"]}, …],   # 1~max_sentences(원문 길이)개
  "commentary": [{"text": "…"}]}                          # 선택. 원문 밖 배경 설명(해설)
 
 규칙 (CLAUDE.md 4): 요약 문장은 원문에 있는 사실만. 문장마다 근거 구절(원문 그대로의 한문 인용)을
@@ -38,6 +38,11 @@ CREATE TABLE IF NOT EXISTS summary_evidence (
 CREATE INDEX IF NOT EXISTS summary_evidence_article ON summary_evidence(article_id);
 """
 TITLE_MAX = 25
+
+
+def max_sentences(text_len: int) -> int:
+    """요약 문장 상한: 원문 250자당 1문장, 최소 3, 최대 10 (사용자 결정: 내용이 많으면 더 써도 됨)."""
+    return min(10, max(3, -(-text_len // 250)))
 # 한글 음절·자모. U+318D(ㆍ)는 원문에서 가운뎃점으로 쓰이므로 뺀다.
 _HANGUL = re.compile("[\uac00-\ud7a3\u3131-\u318c\u318e]")
 
@@ -68,7 +73,7 @@ def check(rec: dict, text: str, ref_title: str | None = None) -> Checked:
     if ref_title and _norm(ref_title) and _norm(title) == _norm(ref_title):
         raise SummaryError(f"{aid}: 제목이 국편 국문 제목과 같음 (번역문 사용 금지)")
     sents = rec.get("sentences") or []
-    limit = 5 if len(text) > 1000 else 3
+    limit = max_sentences(len(text))
     if not 1 <= len(sents) <= limit:
         raise SummaryError(f"{aid}: 요약 문장 {len(sents)}개 (1~{limit})")
     out = []

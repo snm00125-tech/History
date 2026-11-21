@@ -81,14 +81,24 @@ web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는
 - 화면 필터용 자체 상위 묶음 10개(`article_group`): 전쟁·군사, 외교, 정치·행정, 인사, 왕실, 사법, 경제·산업, 사회·생활, 문화·역사, 자연현상·과학.
   국편 대분류 40개를 모두 대응시켰다. 대응 안 되는 분류가 나오면 적재가 실패한다.
 
-## 요약 `sillok/summary.py` (파일럿 단계)
+## 요약 `sillok/summary.py`
 
-- 형식: 한 줄 제목(25자 이하) + 1~3문장(원문 1000자 초과 시 5문장) + 선택 해설.
+- 형식: 한 줄 제목(25자 이하) + 요약 문장 + 선택 해설.
+- 문장 수 상한 = 원문 250자당 1문장, 최소 3, 최대 10(`max_sentences`). 사용자 결정: 내용이 많으면 더 써도 된다. 정확성이 우선이다.
 - 문장마다 근거 구절 = **원문에서 글자 그대로 뽑은 한문 인용**. 적재할 때 원문에서 찾아 오프셋을 저장하고, 못 찾으면 거부한다.
 - 국편 국문 제목과 같은 제목은 거부한다. 요약할 때 `ref_title_ko`를 보지 않는다.
 - 해설은 원문 밖 지식이라 `verified=false`로 저장하고 검수에서 확인한다.
 - 파일럿: `summaries/pilot_1592_04.jsonl`(1592년 4월 51건, 이 세션에서 직접 작성, author=pilot-session).
-  검수 문서: `reports/pilot_1592_04_review.md`. 전체 생성 방식(API 일괄 등)은 파일럿 검토 뒤 정한다.
+  검수 문서: `reports/pilot_1592_04_review.md`. 사용자가 형식을 승인했다.
+
+## 요약 일괄 생성 `sillok/generate.py`
+
+- Claude Message Batches API(표준가의 50%). 모델 `claude-opus-5-5`, adaptive thinking, effort high, JSON 스키마 출력.
+- 지침은 `sillok/prompt.py`(PROMPT_VERSION). 모든 요청에서 같아 1시간 캐시로 공유한다. 파일럿 3건을 예시로 싣고, 국편 국문 제목은 넣지 않는다.
+- 흐름: `prepare`(요청 파일·비용 추정, API 안 씀) → `submit`(돈 드는 단계) → `status` → `collect`(검증 통과분만 `summaries/<이름>.jsonl`·DB에 넣고 실측 비용 기록) → `retry`(실패분에 오류를 알려 재요청, 최대 2번).
+- 작업 폴더 `pipeline/data/gen/<이름>/`(git 제외). 안전 거절(refusal)과 재요청 끝에 남은 실패는 사람이 검토한다.
+- 실행은 `pipeline/.venv/bin/python`(anthropic SDK 설치됨). API 키는 `ANTHROPIC_API_KEY` 또는 환경의 네트워크 비밀값. 접속 주소는 `HISTORY_ANTHROPIC_BASE_URL`(기본 api.anthropic.com). 이 환경의 `ANTHROPIC_BASE_URL`은 Claude Code용이라 쓰지 않는다.
+- 비용은 제출 전에 사용자 승인을 받는다. 작은 묶음을 먼저 돌려 기사당 실측 비용으로 전체를 다시 추정한다.
 
 ## 명령
 
@@ -99,6 +109,8 @@ cd pipeline && python3 -m sillok.validate data/raw/sillok_15053647/x wna wnb    
 cd pipeline && python3 -m sillok.report data/work.sqlite 1592 1598                        # 월별 집계
 cd pipeline && python3 -m sillok.summary data/work.sqlite summaries/pilot_1592_04.jsonl  # 요약 검증·적재
 cd pipeline && python3 -m sillok.review data/work.sqlite reports/pilot_1592_04_review.md 1592 4  # 검수 문서
+cd pipeline && .venv/bin/python -m sillok.generate prepare data/work.sqlite t1592_05 --years 1592 1592 --months 5  # 요청 준비
+cd pipeline && .venv/bin/python -m sillok.generate submit|status|collect|retry data/work.sqlite t1592_05
 ```
 
 ## 작업 원칙

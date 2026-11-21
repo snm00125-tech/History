@@ -6,3 +6,4 @@ pipeline/data/raw/
 node_modules/
 .next/
 out/
+.venv/

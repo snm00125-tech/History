@@ -54,3 +54,8 @@ def test_load(tmp_path):
     n, errs = load_jsonl(str(db), str(f), "test")
     assert n == 1 and len(errs) == 2
     assert con.execute("SELECT COUNT(*) FROM summary_evidence").fetchone()[0] == 1
+
+
+def test_max_sentences():
+    from sillok.summary import max_sentences
+    assert [max_sentences(n) for n in (10, 750, 751, 1004, 2500, 11143)] == [3, 3, 4, 5, 10, 10]
