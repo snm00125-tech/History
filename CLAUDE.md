@@ -100,6 +100,13 @@ web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는
 - 실행은 `pipeline/.venv/bin/python`(anthropic SDK 설치됨). API 키는 `ANTHROPIC_API_KEY` 또는 환경의 네트워크 비밀값. 접속 주소는 `HISTORY_ANTHROPIC_BASE_URL`(기본 api.anthropic.com). 이 환경의 `ANTHROPIC_BASE_URL`은 Claude Code용이라 쓰지 않는다.
 - 비용은 제출 전에 사용자 승인을 받는다. 작은 묶음을 먼저 돌려 기사당 실측 비용으로 전체를 다시 추정한다.
 
+## 세션 안 요약 생성 `sillok/session_gen.py` (사용자 선호: API 대신 세션 사용량)
+
+- `plan`으로 달 단위 묶음(최대 90건·25,000자)을 `data/gen/session/<묶음>.md`에 만든다. 1592~1598은 193개 묶음.
+- 서브에이전트가 묶음을 읽고 `summaries/s_<묶음>.jsonl`에 쓴다. 지침은 `sillok/prompt.py`의 RULES와 예시를 따른다.
+- `verify`(빠짐·중복·검증, DB에 안 씀) → `merge`(DB 적재). 동시에 여러 작업자가 돌아도 DB 쓰기는 merge에서만 한다.
+- 모델(Opus/Sonnet)은 시험 묶음 비교 뒤 정한다(결정 대기).
+
 ## 명령
 
 ```

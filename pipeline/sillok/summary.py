@@ -11,7 +11,7 @@
 해설은 원문 밖 지식이므로 verified=0(검수 전)으로 저장한다.
 국편 국문 제목(ref_title_ko)은 요약 입력이 아니다. 여기서는 베끼지 않았는지 대조하는 데만 쓴다.
 
-사용: python3 -m sillok.summary <db> <jsonl> [--author 이름]
+사용: python3 -m sillok.summary <db> <jsonl> [--author 이름] [--check]   # --check: 검사만, DB에 안 씀
 """
 from __future__ import annotations
 
@@ -101,9 +101,13 @@ def check(rec: dict, text: str, ref_title: str | None = None) -> Checked:
     return Checked(aid, title, out, com or None)
 
 
-def load_jsonl(db: str, path: str, author: str) -> tuple[int, list[str]]:
-    con = sqlite3.connect(db)
-    con.executescript(SCHEMA)
+def load_jsonl(db: str, path: str, author: str, check_only: bool = False) -> tuple[int, list[str]]:
+    """check_only=True면 DB에 쓰지 않고 검사만 한다(여러 작업자가 동시에 돌려도 안전)."""
+    if check_only:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    else:
+        con = sqlite3.connect(db)
+        con.executescript(SCHEMA)
     ok, errors = 0, []
     with con:
         for ln, line in enumerate(open(path, encoding="utf-8"), 1):
@@ -123,6 +127,9 @@ def load_jsonl(db: str, path: str, author: str) -> tuple[int, list[str]]:
                 c = check(rec, row[0], ref[0] if ref else None)
             except SummaryError as e:
                 errors.append(f"{path}:{ln}: {e}")
+                continue
+            if check_only:
+                ok += 1
                 continue
             con.execute("DELETE FROM summary_evidence WHERE article_id=?", (c.id,))
             con.execute("INSERT OR REPLACE INTO summary VALUES (?,?,?,?,?, 'draft', ?)",
@@ -144,8 +151,11 @@ if __name__ == "__main__":
         i = args.index("--author")
         author = args[i + 1]
         del args[i:i + 2]
-    n, errs = load_jsonl(args[0], args[1], author)
-    print(f"적재 {n}건, 오류 {len(errs)}건")
+    check_only = "--check" in args
+    if check_only:
+        args.remove("--check")
+    n, errs = load_jsonl(args[0], args[1], author, check_only)
+    print(f"{'통과' if check_only else '적재'} {n}건, 오류 {len(errs)}건")
     for e in errs:
         print(" ", e)
     sys.exit(1 if errs else 0)
