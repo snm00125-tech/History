@@ -97,7 +97,7 @@ web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는
 - 지침은 `sillok/prompt.py`(PROMPT_VERSION). 모든 요청에서 같아 1시간 캐시로 공유한다. 파일럿 3건을 예시로 싣고, 국편 국문 제목은 넣지 않는다.
 - 흐름: `prepare`(요청 파일·비용 추정, API 안 씀) → `submit`(돈 드는 단계) → `status` → `collect`(검증 통과분만 `summaries/<이름>.jsonl`·DB에 넣고 실측 비용 기록) → `retry`(실패분에 오류를 알려 재요청, 최대 2번).
 - 작업 폴더 `pipeline/data/gen/<이름>/`(git 제외). 안전 거절(refusal)과 재요청 끝에 남은 실패는 사람이 검토한다.
-- 실행은 `pipeline/.venv/bin/python`(anthropic SDK 설치됨). API 키는 `ANTHROPIC_API_KEY` 또는 환경의 네트워크 비밀값. 접속 주소는 `HISTORY_ANTHROPIC_BASE_URL`(기본 api.anthropic.com). 이 환경의 `ANTHROPIC_BASE_URL`은 Claude Code용이라 쓰지 않는다.
+- 실행은 `pipeline/.venv/bin/python`(anthropic SDK 설치됨). API 키는 History 환경의 환경 변수 `HISTORY_ANTHROPIC_API_KEY`(Anthropic 주소는 네트워크 비밀값으로 저장할 수 없음). 접속 주소는 `HISTORY_ANTHROPIC_BASE_URL`(기본 api.anthropic.com). 이 환경의 `ANTHROPIC_BASE_URL`은 Claude Code용이라 쓰지 않는다.
 - 비용은 제출 전에 사용자 승인을 받는다. 작은 묶음을 먼저 돌려 기사당 실측 비용으로 전체를 다시 추정한다.
 
 ## 세션 안 요약 생성 `sillok/session_gen.py` (사용자 선호: API 대신 세션 사용량)
