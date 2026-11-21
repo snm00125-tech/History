@@ -27,7 +27,7 @@ pipeline/        Python 스크립트 + SQLite 작업 DB
   reports/       집계 결과, 검수용 문서
   tools/         일회성 생성 스크립트
   tests/
-web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는다   (작업 예정)
+web/             Next.js + TypeScript 정적 사이트(output: export). public/data의 JSON만 읽는다
 ```
 
 파이프라인 단계: 수집 → 분리(기사 단위) → 날짜 정규화(JDN) → 분류 → 요약 → 용어 → 검수 → 내보내기(날짜별 JSON).
@@ -118,6 +118,14 @@ web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는
 - 국편 실록 사이트(sillok.history.go.kr)는 자동 접속을 방화벽으로 막는다. 번역문 공공데이터도 없다(2026-11 확인).
 - 검수 메모: 李𥕏(외자 한자)은 독음을 확정하지 못해 한자로 두었다. 新苽는 참외/오이 해석이 갈렸다(검수 필요).
 
+## 내보내기·웹
+
+- `sillok/export.py`: DB → `web/public/data/` (git 제외, 약 316MB, 11초). `index.json`, `m/YYYY-MM.json`(양력 달별·날별 기사), `otd/MM-DD.json`(오늘의 실록), `undated.json`.
+  기사: 국편 국문 제목, 분류, 원문, 자체 요약(있으면), 검수 표시. 고종·순종은 원자료 재위연도 표기를 왕력으로 쓴다.
+- 고종·순종실록(15053646, 공공누리 4유형): 1896년(고종 33)부터 양력 날짜(간지 칸 '陽曆') → `jdn_status='solar'`. 고종 1874·1875·1893년 일진 불일치 192건은 원자료 머리 일진 오류로 보여 표 날짜 유지.
+- 화면: `/`(날짜로 찾기, 왕별, 오늘의 실록), `/view/?ym=YYYY-MM&d=D`(달력 + 그날 기사, 분류 필터, 펼치면 요약·원문·실록 사이트 링크).
+- 전체 기사 413,771건(태조~순종 부록), 6,399개월.
+
 ## 명령
 
 ```
@@ -129,6 +137,10 @@ cd pipeline && python3 -m sillok.summary data/work.sqlite summaries/pilot_1592_0
 cd pipeline && python3 -m sillok.review data/work.sqlite reports/pilot_1592_04_review.md 1592 4  # 검수 문서
 cd pipeline && .venv/bin/python -m sillok.generate prepare data/work.sqlite t1592_05 --years 1592 1592 --months 5  # 요청 준비
 cd pipeline && .venv/bin/python -m sillok.generate submit|status|collect|retry data/work.sqlite t1592_05
+cd pipeline && python3 -m sillok.load data/raw/sillok_15053646/x data/work.sqlite            # 고종·순종 추가 적재 (약 40초)
+cd pipeline && python3 -m sillok.export data/work.sqlite ../web/public/data                 # 웹 데이터 내보내기
+cd web && npm install && npm run dev        # 개발 서버 :3000
+cd web && npm run build                     # 정적 사이트 → web/out
 ```
 
 ## 작업 원칙
