@@ -6,7 +6,7 @@ from hdate import describe, jdn_to_lunar, jdn_to_solar, lunar_to_jdn, regnal_to_
 from hdate import ganji
 from hdate.calendar import GREGORIAN_START_JDN, gregorian_to_jdn, julian_to_jdn
 from hdate.lunar import END_JDN, FIRST_JDN, leap_month_of, month_length
-from hdate.regnal import from_lunar, to_lunar_year
+from hdate.regnal import from_lunar, labels_for, to_lunar_year
 
 
 # --- 설계서 검증 예 ---
@@ -87,8 +87,23 @@ def test_regnal():
     for y in range(1592, 1599):
         r = from_lunar(jdn_to_lunar(lunar_to_jdn(y, 6, 1)))
         assert r.king == "선조" and r.year == y - 1567 and not r.ambiguous
-    # 즉위일 미확정인 해는 ambiguous로 표시
-    assert from_lunar(jdn_to_lunar(lunar_to_jdn(1608, 6, 1))).ambiguous
+    # 경계(광해군 실록 첫 기사 1608-02-01) 전후
+    from hdate.lunar import LunarDate as L
+    assert str(from_lunar(L(1608, 1, 30))) == "선조 41년"
+    assert str(from_lunar(L(1608, 2, 1))) == "광해군 즉위년"
+    assert [str(x) for x in labels_for(L(1608, 2, 1))] == ["선조 41년", "광해군 즉위년"]
+    # 즉위년칭원: 단종 3년 = 세조 1년 (1455)
+    assert str(from_lunar(L(1455, 6, 10, True))) == "단종 3년"
+    assert str(from_lunar(L(1455, 6, 11, True))) == "세조 1년"
+    # 즉위년 표기가 없는 왕
+    with pytest.raises(ValueError):
+        to_lunar_year("정종", 0)
+    assert str(from_lunar(L(1398, 12, 1))) == "태조 7년"
+    assert to_lunar_year("연산", 1) == 1495  # 실록 표기 별칭
+    assert from_lunar(L(1392, 7, 16)) is None
+    # 고종: 경계 미상 → 철종 실록 마지막 기사 뒤 1863년은 ambiguous
+    assert from_lunar(L(1863, 12, 20)).ambiguous
+    assert str(from_lunar(L(1864, 1, 1))) == "고종 1년"
 
 
 # --- 속도 ---
