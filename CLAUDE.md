@@ -64,12 +64,12 @@ web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는
 
 ```
 cd pipeline && python3 -m pytest -q --durations=5
-cd pipeline && python3 -I -m sillok.load data/raw/sillok_15053647/x data/work.sqlite wna wnb   # 적재 (약 4초)
-cd pipeline && python3 -I -m sillok.validate data/raw/sillok_15053647/x wna wnb             # 일진 대조
-cd pipeline && python3 -I -m sillok.report data/work.sqlite 1592 1598                        # 월별 집계
+cd pipeline && python3 -m sillok.load data/raw/sillok_15053647/x data/work.sqlite wna wnb   # 적재 (약 4초)
+cd pipeline && python3 -m sillok.validate data/raw/sillok_15053647/x wna wnb             # 일진 대조
+cd pipeline && python3 -m sillok.report data/work.sqlite 1592 1598                        # 월별 집계
 ```
 
 ## 작업 원칙
 
-- 내려받은 원자료는 `pipeline/data/raw/`에 두고 git에 넣지 않는다. 신뢰할 수 없는 데이터로 다루고, 파싱할 때는 `python -I`로 실행한다.
+- 내려받은 원자료는 `pipeline/data/raw/`에 두고 git에 넣지 않는다. 신뢰할 수 없는 데이터로 다룬다. 원자료 디렉터리 안에서 스크립트를 실행하지 않는다.
 - 실록 기사 머리의 일진(간지)과 `hdate`가 계산한 일진을 전수 대조해 음력 표를 검증한다.
