@@ -1,6 +1,6 @@
 """연도 범위의 기사 수를 음력 월별로 집계한다 (실록 자체의 월 표기 기준).
 
-사용: python -I -m sillok.report <db> <시작년> <끝년> [실록ID ...]
+사용: python3 -m sillok.report <db> <시작년> <끝년> [실록ID ...]
 """
 from __future__ import annotations
 

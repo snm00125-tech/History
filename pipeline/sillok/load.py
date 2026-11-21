@@ -1,6 +1,6 @@
 """실록 기사를 SQLite 작업 DB에 넣는다.
 
-사용: python -I -m sillok.load <원문XML 디렉터리> <db 경로> [실록ID ...]
+사용: python3 -m sillok.load <원문XML 디렉터리> <db 경로> [실록ID ...]
 국문 기사 제목 등 번역 산물은 넣지 않는다 (CLAUDE.md 규칙 3).
 """
 from __future__ import annotations
