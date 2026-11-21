@@ -17,6 +17,13 @@ pytestmark = pytest.mark.skipif(not DB.exists(), reason="작업 DB 없음")
 def env(tmp_path, monkeypatch):
     db = tmp_path / "w.sqlite"
     db.write_bytes(DB.read_bytes())
+    # 작업 DB에 이미 요약이 채워져 있어도 흐름을 점검할 수 있도록, 복사본에서 1592년 5월 요약을 지운다
+    con = sqlite3.connect(db)
+    month5 = "SELECT id FROM article WHERE lunar_year=1592 AND lunar_month=5"
+    for t in ("summary_evidence", "summary"):
+        con.execute(f"DELETE FROM {t} WHERE article_id IN ({month5})")
+    con.commit()
+    con.close()
     monkeypatch.setattr(generate, "ROOT", tmp_path)
     (tmp_path / "summaries").mkdir()
     return db
