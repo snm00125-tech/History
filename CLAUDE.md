@@ -20,7 +20,8 @@
 pipeline/        Python 스크립트 + SQLite 작업 DB
   hdate/         날짜 변환 (양력·음력·왕력·간지 ↔ JDN)
   sillok/        실록 원문 XML → 기사 단위 파서, SQLite 적재, 집계
-  reports/       집계 결과
+  summaries/     요약 JSONL (git에 넣는다. 자체 저작물)
+  reports/       집계 결과, 검수용 문서
   tools/         일회성 생성 스크립트
   tests/
 web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는다   (작업 예정)
@@ -66,13 +67,30 @@ web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는
   선조수정실록 1592년 3월 3일은 머리 일진이 甲子이지만, 본문 교감주는 癸亥다. 머리 일진이 틀린 경우도 있으니 검수 때 본문과 대조한다.
 - 1592~1598 현황: 선조실록 ok 10,884 / adjusted 108 / 일 미상 7, 수정실록 ok 512 / adjusted 5 / conflict 2.
 
+## 분류 `sillok/category.py`
+
+- 국편 subjectClass 원본은 `subject` 표에 그대로 둔다(번역문 아님, 메타데이터).
+- 화면 필터용 자체 상위 묶음 10개(`article_group`): 전쟁·군사, 외교, 정치·행정, 인사, 왕실, 사법, 경제·산업, 사회·생활, 문화·역사, 자연현상·과학.
+  국편 대분류 40개를 모두 대응시켰다. 대응 안 되는 분류가 나오면 적재가 실패한다.
+
+## 요약 `sillok/summary.py` (파일럿 단계)
+
+- 형식: 한 줄 제목(25자 이하) + 1~3문장(원문 1000자 초과 시 5문장) + 선택 해설.
+- 문장마다 근거 구절 = **원문에서 글자 그대로 뽑은 한문 인용**. 적재할 때 원문에서 찾아 오프셋을 저장하고, 못 찾으면 거부한다.
+- 국편 국문 제목과 같은 제목은 거부한다. 요약할 때 `ref_title_ko`를 보지 않는다.
+- 해설은 원문 밖 지식이라 `verified=false`로 저장하고 검수에서 확인한다.
+- 파일럿: `summaries/pilot_1592_04.jsonl`(1592년 4월 51건, 이 세션에서 직접 작성, author=pilot-session).
+  검수 문서: `reports/pilot_1592_04_review.md`. 전체 생성 방식(API 일괄 등)은 파일럿 검토 뒤 정한다.
+
 ## 명령
 
 ```
 cd pipeline && python3 -m pytest -q --durations=5
-cd pipeline && python3 -m sillok.load data/raw/sillok_15053647/x data/work.sqlite wna wnb   # 적재 (약 4초)
+cd pipeline && python3 -m sillok.load data/raw/sillok_15053647/x data/work.sqlite wna wnb   # 적재 (약 8초)
 cd pipeline && python3 -m sillok.validate data/raw/sillok_15053647/x wna wnb             # 일진 대조
 cd pipeline && python3 -m sillok.report data/work.sqlite 1592 1598                        # 월별 집계
+cd pipeline && python3 -m sillok.summary data/work.sqlite summaries/pilot_1592_04.jsonl  # 요약 검증·적재
+cd pipeline && python3 -m sillok.review data/work.sqlite reports/pilot_1592_04_review.md 1592 4  # 검수 문서
 ```
 
 ## 작업 원칙

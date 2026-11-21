@@ -15,6 +15,7 @@ import time
 
 from hdate import ganji, lunar_to_jdn
 
+from .category import groups_of, split_subject
 from .parse import iter_files, parse_file
 
 SCHEMA = """
@@ -40,6 +41,16 @@ CREATE TABLE IF NOT EXISTS span (
   kind TEXT NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, ref TEXT
 );
 CREATE INDEX IF NOT EXISTS span_article ON span(article_id);
+-- 분류: 국편 subjectClass 원본(subject)과 자체 상위 묶음(article_group)
+CREATE TABLE IF NOT EXISTS subject (
+  article_id TEXT NOT NULL REFERENCES article(id), raw TEXT NOT NULL, major TEXT NOT NULL, minor TEXT
+);
+CREATE INDEX IF NOT EXISTS subject_article ON subject(article_id);
+CREATE TABLE IF NOT EXISTS article_group (
+  article_id TEXT NOT NULL REFERENCES article(id), grp TEXT NOT NULL, rank INTEGER NOT NULL,
+  PRIMARY KEY (article_id, grp)
+);
+CREATE INDEX IF NOT EXISTS article_group_grp ON article_group(grp);
 -- 국사편찬위원회 국문 기사 제목(타 기관 번역 산물). 검수 때 대조용으로만 쓴다. 화면·내보내기 금지.
 CREATE TABLE IF NOT EXISTS ref_title_ko (
   article_id TEXT PRIMARY KEY REFERENCES article(id), title TEXT NOT NULL
@@ -87,10 +98,10 @@ def load(src_dir: str, db_path: str, books=None) -> dict:
     with con:
         for f in iter_files(src_dir, books):
             book = f.name.split("_")[1]
-            for t in ("span", "ref_title_ko"):
+            for t in ("span", "ref_title_ko", "subject", "article_group"):
                 con.execute(f"DELETE FROM {t} WHERE article_id IN (SELECT id FROM article WHERE file=?)", (f.name,))
             con.execute("DELETE FROM article WHERE file=?", (f.name,))
-            rows, spans, titles = [], [], []
+            rows, spans, titles, subs, grps = [], [], [], [], []
             for a in parse_file(f):
                 j, jt, st, d = _date_fields(a)
                 review = int(st in ("ganji_adjusted", "ganji_conflict", "invalid_date"))
@@ -98,11 +109,15 @@ def load(src_dir: str, db_path: str, books=None) -> dict:
                              a.text, json.dumps(a.subjects, ensure_ascii=False),
                              json.dumps(a.sources, ensure_ascii=False), f.name))
                 spans += [(a.id, s.kind, s.start, s.end, s.ref) for s in a.spans]
+                subs += [(a.id, x, *split_subject(x)) for x in a.subjects]
+                grps += [(a.id, g, i) for i, g in enumerate(groups_of(a.subjects))]
                 if a.title_ko_ref:
                     titles.append((a.id, a.title_ko_ref))
             con.executemany("INSERT INTO article VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
             con.executemany("INSERT INTO span VALUES (?,?,?,?,?)", spans)
             con.executemany("INSERT INTO ref_title_ko VALUES (?,?)", titles)
+            con.executemany("INSERT INTO subject VALUES (?,?,?,?)", subs)
+            con.executemany("INSERT INTO article_group VALUES (?,?,?)", grps)
             n += len(rows)
     con.close()
     return {"articles": n}
