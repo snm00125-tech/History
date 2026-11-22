@@ -147,6 +147,9 @@ web/             Next.js + TypeScript 정적 사이트(output: export). public/d
   4,096 조각, 차분+varint→base64, 39,484,420 항목, 138MB. 문서 번호는 제목 검색과 같고, 확인·인용문은 달 파일(m/) 원문으로(원문을 따로 또 싣지 않는다).
   색인에 없는 두 글자는 건너뛰고 확인 단계에서 거른다. 흔한 두 글자뿐인 질의는 못 찾는다. 50건씩, 한 번에 후보 600건까지 확인. 로컬 실측 0.1~1.5초.
   내보내기 전체가 약 7분 걸린다(`export.py`의 `FULLTEXT=False`로 끌 수 있음). 사이트 파일 약 13,500개, 약 700MB.
+- **용어** (파이프라인 6단계) `pipeline/terms/joseon_terms.json`(167개: 관청·관직·문서·인사·형벌·과거·경제·왕실·의례 등): 실록 제목 빈도로 고른 말 + 이 앱이 쓴 풀이(verified=false).
+  내보내기가 제목에서 긴 것부터 겹치지 않게 찾아 기사마다 `k`(용어 번호)를 붙인다. 인물 이름과 겹치는 자리는 건너뛴다(정언신 ≠ 정언). 뜻이 여럿인 말(군·계·사직·감사·공주·대동·자문)은 뺐다.
+  화면: 기사 펼치면 「용어 풀이」, `/terms/` 용어 사전(분야 필터·찾기·그 말이 나오는 기사 검색).
 - **날짜 검수** `/review/`(`review.json`): needs_review 2,315건을 (책, 음력 연·월, 윤, 상태, 차이) 231묶음으로(한 달 통째 밀림이 한 묶음). 묶음별 원문 일진·표 날짜·쓰는 날짜·기사 링크. 「확인함」은 브라우저 localStorage에만 기억(DB 반영은 아직 없음).
 - **왕별 연표** `/kings/`(`kings.json`): 27왕, 재위 막대 = 그 왕 실록의 첫~끝 기사(양력). 펼치면 연도별 그 왕 실록 기사 수 막대(누르면 그해 첫 달로), 재위 중 주요 사건.
   난중일기·징비록은 공공데이터에 없다.
@@ -170,7 +173,7 @@ web/             Next.js + TypeScript 정적 사이트(output: export). public/d
 
 ```
 bash pipeline/tools/rebuild_all.sh          # 새 세션: 원자료 내려받기 → 적재 → 요약 → 내보내기 → 빌드 (약 20분, 시험 통과 확인함)
-cd web && NODE_PATH=$(npm root -g) node scripts/smoke.cjs   # 빌드한 사이트 화면 9개 점검
+cd web && NODE_PATH=$(npm root -g) node scripts/smoke.cjs   # 빌드한 사이트 화면 10개 점검
 cd pipeline && python3 -m pytest -q --durations=5
 cd pipeline && python3 -m sillok.load data/raw/sillok_15053647/x data/work.sqlite            # 전체 적재 (약 4분, 그 뒤 summaries/*.jsonl 재적재)
 cd pipeline && python3 -m sillok.validate data/raw/sillok_15053647/x wna wnb             # 일진 대조

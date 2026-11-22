@@ -34,6 +34,7 @@ const CHECKS = [
   ["인물 화면", "/person/?id=M_0004641", ".personview .results li"],
   ["왕별 연표", "/kings/", ".krow"],
   ["날짜 검수", "/review/", ".rg-title"],
+  ["용어 사전", "/terms/", ".termlist dt"],
 ];
 
 (async () => {

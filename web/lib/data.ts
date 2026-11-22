@@ -11,6 +11,7 @@ export type Article = {
   s?: Summary; // 자체 요약
   r?: string; // 검수 필요 사유 (jdn_status)
   reg?: string; // 원자료 재위연도 (고종·순종)
+  k?: number[]; // 제목에 나오는 용어 번호(terms.json)
   p?: [string, string][]; // 이 기사에 나오는 인물 [인물 ID, 한글 이름] (언급 많은 순, 최대 12)
   lunarMonth?: string | null; // month 정밀도 기사의 음력 달
   range?: [string, string];
@@ -114,3 +115,6 @@ export const REVIEW_LABEL: Record<string, string> = {
   ganji_conflict: "일진 불일치",
   invalid_date: "날짜 오류",
 };
+
+export type Term = { t: string; h: string; c: string; d: string; verified: boolean };
+export const loadTerms = () => get<Term[]>("terms.json");

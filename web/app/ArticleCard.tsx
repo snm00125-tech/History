@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { type Article, REVIEW_LABEL, sourceSite, sourceUrl } from "@/lib/data";
+import { type Article, REVIEW_LABEL, type Term, loadTerms, sourceSite, sourceUrl } from "@/lib/data";
 
 export function ArticleCard({
   a,
@@ -17,6 +17,10 @@ export function ArticleCard({
 }) {
   const [open, setOpen] = useState(focus);
   const ref = useRef<HTMLElement>(null);
+  const [terms, setTerms] = useState<Term[] | null>(null);
+  useEffect(() => {
+    if (open && a.k?.length && !terms) loadTerms().then(setTerms).catch(() => setTerms([]));
+  }, [open, a.k, terms]);
   useEffect(() => {
     if (focus) {
       setOpen(true);
@@ -56,6 +60,23 @@ export function ArticleCard({
                   ))}
                 </div>
               )}
+            </section>
+          )}
+          {terms && a.k && a.k.length > 0 && (
+            <section className="terms">
+              <h4>용어 풀이 (해설·검수 전)</h4>
+              <dl>
+                {a.k.map((i) =>
+                  terms[i] ? (
+                    <div key={i}>
+                      <dt>
+                        {terms[i].t} <span className="hj">{terms[i].h}</span>
+                      </dt>
+                      <dd>{terms[i].d}</dd>
+                    </div>
+                  ) : null,
+                )}
+              </dl>
             </section>
           )}
           {a.p && a.p.length > 0 && (

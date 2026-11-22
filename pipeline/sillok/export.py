@@ -30,6 +30,33 @@ from .export_person import export_persons
 from .category import GROUP_NAMES
 
 EVENTS = Path(__file__).parents[1] / "events" / "joseon.json"
+TERMS = Path(__file__).parents[1] / "terms" / "joseon_terms.json"
+
+
+def load_terms() -> list[dict]:
+    return json.loads(TERMS.read_text(encoding="utf-8"))["terms"] if TERMS.exists() else []
+
+
+def match_terms(title: str, terms_sorted: list[tuple[int, str]], avoid: list[str]) -> list[int]:
+    """제목에서 용어를 긴 것부터 겹치지 않게 찾는다. 인물 이름과 겹치는 자리는 건너뛴다(예: 정언신 ≠ 정언)."""
+    taken = [False] * len(title)
+    for name in avoid:
+        start = title.find(name)
+        while name and start >= 0:
+            for k in range(start, start + len(name)):
+                taken[k] = True
+            start = title.find(name, start + 1)
+    found = []
+    for i, t in terms_sorted:
+        start = title.find(t)
+        while start >= 0:
+            if not any(taken[start:start + len(t)]):
+                for k in range(start, start + len(t)):
+                    taken[k] = True
+                if i not in found:
+                    found.append(i)
+            start = title.find(t, start + 1)
+    return sorted(found)
 
 
 def load_events(con) -> list[dict]:
@@ -166,6 +193,8 @@ def export(db: str, out: str) -> dict:
     search_texts: list[str] = []
     otd: dict[str, list] = defaultdict(list)
     undated = []
+    terms = load_terms()
+    terms_sorted = sorted(enumerate(t["t"] for t in terms), key=lambda x: -len(x[1]))
     persons_of: dict[str, list] = defaultdict(list)
     if con.execute("SELECT 1 FROM sqlite_master WHERE name='article_person'").fetchone():
         for aid, pid, ko in con.execute("""SELECT ap.article_id, ap.person_id, p.name_ko FROM article_person ap
@@ -183,6 +212,9 @@ def export(db: str, out: str) -> dict:
             art["s"] = sums[aid]
         if aid in persons_of:
             art["p"] = persons_of[aid]
+        ks = match_terms(art["t"], terms_sorted, [n for _, n in persons_of.get(aid, [])])
+        if ks:
+            art["k"] = ks
         if review:
             art["r"] = status
         search_docs.append((art["t"], day_info(js)["solar"] if js is not None else "", aid, book))
@@ -241,6 +273,8 @@ def export(db: str, out: str) -> dict:
     fulltext_stats = fulltext_index.build(search_texts, outp / "f") if FULLTEXT else {}
     doc_of = {d[2]: i for i, d in enumerate(search_docs)}
     person_stats = export_persons(con, outp, doc_of, lambda j: day_info(j)["solar"])
+    (outp / "terms.json").write_text(json.dumps([{**t, "verified": False} for t in terms], ensure_ascii=False,
+                                                separators=(",", ":")), encoding="utf-8")
     review = build_review(con, titles, books)
     (outp / "review.json").write_text(json.dumps(review, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     kings_full = build_kings(con, events)

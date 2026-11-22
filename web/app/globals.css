@@ -214,3 +214,10 @@ main { max-width: 960px; margin: 0 auto; padding: 16px; }
 .tabs a.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .ft-snip { display: block; margin-top: 2px; font-family: "Noto Serif KR", "Noto Serif CJK KR", serif; font-size: 0.88rem; color: var(--muted); word-break: break-all; }
 .ft-snip mark { background: var(--accent-soft); color: var(--ink); padding: 0 1px; }
+
+.terms dl, .termlist { margin: 0; }
+.terms dl > div, .termlist > div { padding: 4px 0; border-bottom: 1px solid var(--line); }
+.terms dt, .termlist dt { font-weight: 600; font-size: 0.9rem; }
+.terms dd, .termlist dd { margin: 2px 0 0; font-size: 0.88rem; color: var(--muted); }
+.termlist { margin-top: 8px; }
+.termlist dd { color: var(--ink); }
