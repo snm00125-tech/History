@@ -60,7 +60,9 @@ export const loadOtd = (md: string) => get<OtdItem[]>(`otd/${md}.json`);
 
 /** 원문 사이트: 실록(w로 시작)은 조선왕조실록 사이트, 그 밖은 한국사데이터베이스 */
 export const sourceUrl = (id: string) =>
-  id.startsWith("w") ? `https://sillok.history.go.kr/id/${id}` : `https://db.history.go.kr/id/${id}`;
+  id.startsWith("w")
+    ? `https://sillok.history.go.kr/id/${id}`
+    : `https://db.history.go.kr/id/${id.replace(/_d\d\d(m\d\d)?$/, "")}`; // 일기를 날로 나눈 조각은 원래 요소로
 export const sourceSite = (id: string) => (id.startsWith("w") ? "조선왕조실록 사이트" : "한국사데이터베이스");
 
 export function formatSolar(d: Day): string {

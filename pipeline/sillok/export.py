@@ -71,6 +71,9 @@ def export(db: str, out: str) -> dict:
     for aid, g in con.execute("SELECT article_id, grp FROM article_group ORDER BY article_id, rank"):
         groups[aid].append(g)
     titles = dict(con.execute("SELECT article_id, title FROM ref_title_ko"))
+    books = dict(BOOKS)
+    if con.execute("SELECT 1 FROM sqlite_master WHERE name='book'").fetchone():
+        books.update(dict(con.execute("SELECT code, name FROM book")))
     sums = {}
     for aid, t, s, c, au in con.execute("SELECT article_id, title, sentences, commentary, author FROM summary"):
         sums[aid] = {"title": t, "sentences": [x["text"] for x in json.loads(s)],
@@ -131,7 +134,7 @@ def export(db: str, out: str) -> dict:
                 if any(x["king"] == k for x in kings):
                     continue
                 kings.append({"king": k, "first": mi["ym"]})
-    index = {"books": BOOKS, "groups": GROUP_NAMES, "months": month_index, "kings": kings,
+    index = {"books": books, "groups": GROUP_NAMES, "months": month_index, "kings": kings,
              "total": sum(mi["n"] for mi in month_index) + len(undated), "undated": len(undated),
              "summarized": len(sums)}
     (outp / "index.json").write_text(json.dumps(index, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
