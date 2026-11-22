@@ -16,6 +16,8 @@ python3 -m sillok.load_bb data/raw/khdb_15053636/x data/work.sqlite
 python3 -m sillok.load_sa data/raw/khdb_15053632/x data/work.sqlite
 python3 -m sillok.load_kh data/raw data/work.sqlite
 python3 -m sillok.load_sjw data/raw/sjw_15064218/x data/work.sqlite
+python3 -m sillok.load_itkc data/raw/itkc_15141442/x data/work.sqlite
+python3 -m sillok.load_jh data/raw data/work.sqlite
 python3 -m sillok.load_person data/raw/person_15053645/x data/work.sqlite
 python3 -m sillok.date_review data/work.sqlite
 python3 -m pytest -q

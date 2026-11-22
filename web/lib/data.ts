@@ -107,9 +107,11 @@ export const sourceUrl = (id: string) =>
     ? `https://sillok.history.go.kr/id/${id}`
     : id.startsWith("SJW-")
       ? `https://sjw.history.go.kr/id/${id}`
+      : id.startsWith("ITKC_")
+        ? `https://db.itkc.or.kr/dir/item?itemId=GO#/dir/node?dataId=${id}` // 고전번역원 DB (주소 형식 미확인)
       : `https://db.history.go.kr/id/${id.replace(/_d\d\d(m\d\d)?$/, "")}`; // 일기를 날로 나눈 조각은 원래 요소로
 export const sourceSite = (id: string) =>
-  id.startsWith("w") ? "조선왕조실록 사이트" : id.startsWith("SJW-") ? "승정원일기 사이트" : "한국사데이터베이스";
+  id.startsWith("w") ? "조선왕조실록 사이트" : id.startsWith("SJW-") ? "승정원일기 사이트" : id.startsWith("ITKC_") ? "한국고전종합DB" : "한국사데이터베이스";
 
 /** "1592-05-23", "-057-04" 등 → [연, 월, 일]. 연은 역사 연도(기원전 = 음수, 0년 없음) */
 export function parseYmd(s: string): number[] {
