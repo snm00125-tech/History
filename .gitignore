@@ -8,3 +8,4 @@ node_modules/
 out/
 .venv/
 pipeline/data/gen/
+*.tsbuildinfo
