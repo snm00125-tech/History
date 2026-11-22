@@ -139,6 +139,10 @@ web/             Next.js + TypeScript 정적 사이트(output: export). public/d
 - **제목 검색** `/search/?q=`(`sillok/search_index.py` → `data/s/`): 51만 제목의 두 글자 색인(crc32 % 2048 조각, 차분 부호화) + 문서 덩어리(2,000건씩).
   질의 두 글자 목록 교집합 → 제목에 질의가 그대로 든 것만, 날짜순 100건씩. 흔한 두 글자(df ≥ 15,000, 63개: '하다' 등)는 색인에서 빼고 건너뛴다. 한 글자 검색은 안 된다.
   결과를 누르면 `/view/…#기사ID`로 가서 그 기사를 펼치고 화면으로 가져온다. 파일 약 9,200개(Cloudflare 무료 한도 20,000 안).
+- **인물** (공공데이터 15053645 실록 부가정보 인물·관직 CSV, `sillok/load_person.py`, `sillok/export_person.py`):
+  표 person(115,859명), person_office(관직 336,255건, 관직 CSV의 기사 ID kma_… → wma_…), article_person(879,161쌍 = 원문 인명 색인 span ref M_… 묶음).
+  내보내기 `p/<번호//500>.json`(인물 정보·관직·기사 문서 번호), `pi/<초성>.json`(이름 찾기, 언급 많은 순), 기사마다 `p`(나오는 인물 최대 12).
+  화면: `/person/?id=M_…`(정보·관직 기록·나오는 기사 날짜순), 검색 화면 위에 「인물」 결과(같은 이름 여러 명을 생몰년·구분·기사 수로 구분), 기사 펼치면 「나오는 인물」 버튼.
 - **왕별 연표** `/kings/`(`kings.json`): 27왕, 재위 막대 = 그 왕 실록의 첫~끝 기사(양력). 펼치면 연도별 그 왕 실록 기사 수 막대(누르면 그해 첫 달로), 재위 중 주요 사건.
   난중일기·징비록은 공공데이터에 없다.
 - 글꼴: Pretendard(npm `pretendard`, 사이트에 내장).
@@ -165,6 +169,7 @@ cd pipeline && .venv/bin/python -m sillok.generate submit|status|collect|retry d
 cd pipeline && python3 -m sillok.load data/raw/sillok_15053646/x data/work.sqlite            # 고종·순종 추가 적재 (약 40초)
 cd pipeline && python3 -m sillok.load_bb data/raw/khdb_15053636/x data/work.sqlite          # 비변사등록 적재 (약 6초)
 cd pipeline && python3 -m sillok.load_sa data/raw/khdb_15053632/x data/work.sqlite          # 한국사료총서 적재 (약 8초)
+cd pipeline && python3 -m sillok.load_person data/raw/person_15053645/x data/work.sqlite   # 인물 (실록 적재 뒤, 약 5초)
 cd pipeline && python3 -m sillok.export data/work.sqlite ../web/public/data                 # 웹 데이터 내보내기
 cd web && npm install && npm run dev        # 개발 서버 :3000
 cd web && npm run build                     # 정적 사이트 → web/out

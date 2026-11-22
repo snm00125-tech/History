@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { type Article, REVIEW_LABEL, sourceSite, sourceUrl } from "@/lib/data";
 
@@ -55,6 +56,16 @@ export function ArticleCard({
                   ))}
                 </div>
               )}
+            </section>
+          )}
+          {a.p && a.p.length > 0 && (
+            <section className="people">
+              <h4>나오는 인물</h4>
+              {a.p.map(([pid, name]) => (
+                <Link key={pid} href={`/person/?id=${pid}`} className="pchip">
+                  {name}
+                </Link>
+              ))}
             </section>
           )}
           <section className="source">

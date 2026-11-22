@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { type Index, loadIndex } from "@/lib/data";
+import { type PersonHit, findPersons } from "@/lib/person";
 import { type Doc, candidates, verify } from "@/lib/search";
 
 const PAGE = 100;
@@ -20,6 +21,7 @@ function SearchInner() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [bookFilter, setBookFilter] = useState<string | null>(null);
+  const [people, setPeople] = useState<PersonHit[]>([]);
 
   useEffect(() => {
     loadIndex().then(setIdx);
@@ -30,7 +32,9 @@ function SearchInner() {
     setDocs([]);
     setMsg("");
     setBookFilter(null);
+    setPeople([]);
     if (!q) return;
+    findPersons(q, 12).then(setPeople);
     let live = true;
     setBusy(true);
     (async () => {
@@ -75,10 +79,28 @@ function SearchInner() {
           router.push(`/search/?q=${encodeURIComponent(input.trim())}`);
         }}
       >
-        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="예: 이순신, 훈민정음, 거북선" aria-label="검색어" />
+        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="예: 이순신, 훈민정음, 거북선 (인물·기사 제목)" aria-label="검색어" />
         <button type="submit">찾기</button>
       </form>
       <p className="hint">기사 제목(국편 국문 제목·비변사등록 제목·일기 첫머리)에서 찾습니다. 날짜순으로 보여 줍니다.</p>
+      {people.length > 0 && (
+        <section className="panel">
+          <h3 className="ptitle">인물</h3>
+          <ul className="plist">
+            {people.map(([pid, ko, hj, born, died, kind, n]) => (
+              <li key={pid}>
+                <Link href={`/person/?id=${pid}`}>
+                  <strong>{ko}</strong> <span className="hj">{hj}</span>
+                  <span className="pmeta">
+                    {born || died ? ` ${born ?? "?"}~${died ?? "?"}` : ""}
+                    {kind ? ` · ${kind}` : ""} · 기사 {n.toLocaleString()}건
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {msg && <p className="error">{msg}</p>}
       {busy && <p className="hint">찾는 중…</p>}
       {ids && !busy && (

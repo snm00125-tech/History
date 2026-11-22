@@ -79,3 +79,16 @@ export async function verify(q: string, ids: number[], from: number, n: number) 
   }
   return { docs: out, next: i };
 }
+
+/** 문서 번호들 → 문서(제목·날짜·ID·책). 덩어리 단위로 받아 온다. */
+export async function docsByIds(ids: number[]): Promise<Doc[]> {
+  const meta = await get<Meta>("meta.json");
+  const out: Doc[] = [];
+  for (const i of ids) {
+    const k = Math.floor(i / meta.chunk);
+    const chunk = await get<Doc[]>(`d/${k}.json`);
+    const d = chunk[i - k * meta.chunk];
+    if (d) out.push(d);
+  }
+  return out;
+}

@@ -26,6 +26,7 @@ from hdate.regnal import labels_for
 from hdate import lunar_to_jdn
 
 from . import search_index
+from .export_person import export_persons
 from .category import GROUP_NAMES
 
 EVENTS = Path(__file__).parents[1] / "events" / "joseon.json"
@@ -140,6 +141,12 @@ def export(db: str, out: str) -> dict:
     search_docs: list[tuple[str, str, str, str]] = []
     otd: dict[str, list] = defaultdict(list)
     undated = []
+    persons_of: dict[str, list] = defaultdict(list)
+    if con.execute("SELECT 1 FROM sqlite_master WHERE name='article_person'").fetchone():
+        for aid, pid, ko in con.execute("""SELECT ap.article_id, ap.person_id, p.name_ko FROM article_person ap
+                                           JOIN person p ON p.id = ap.person_id ORDER BY ap.article_id, ap.n DESC"""):
+            if len(persons_of[aid]) < 12 and ko:
+                persons_of[aid].append([pid, ko])
     rows = con.execute("""SELECT id, book, lunar_year, lunar_month, lunar_leap, date_precision,
                                  jdn_start, jdn_end, jdn_status, needs_review, text, regnal_src
                           FROM article ORDER BY jdn_start, book, id""")
@@ -149,6 +156,8 @@ def export(db: str, out: str) -> dict:
             art["reg"] = reg.split(" ")[0] + " " + reg.split(" ")[1]
         if aid in sums:
             art["s"] = sums[aid]
+        if aid in persons_of:
+            art["p"] = persons_of[aid]
         if review:
             art["r"] = status
         search_docs.append((art["t"], day_info(js)["solar"] if js is not None else "", aid, book))
@@ -203,6 +212,8 @@ def export(db: str, out: str) -> dict:
                     continue
                 kings.append({"king": k, "first": mi["ym"]})
     search_stats = search_index.build(search_docs, outp / "s")
+    doc_of = {d[2]: i for i, d in enumerate(search_docs)}
+    person_stats = export_persons(con, outp, doc_of, lambda j: day_info(j)["solar"])
     kings_full = build_kings(con, events)
     (outp / "kings.json").write_text(json.dumps(kings_full, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (outp / "events.json").write_text(json.dumps(events, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
@@ -210,7 +221,7 @@ def export(db: str, out: str) -> dict:
              "total": sum(mi["n"] for mi in month_index) + len(undated), "undated": len(undated),
              "summarized": len(sums)}
     (outp / "index.json").write_text(json.dumps(index, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    return {"months": len(month_index), "articles": index["total"], "search": search_stats,
+    return {"months": len(month_index), "articles": index["total"], "search": search_stats, "persons": person_stats,
             "secs": round(time.perf_counter() - t0, 1)}
 
 
