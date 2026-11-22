@@ -208,3 +208,9 @@ main { max-width: 960px; margin: 0 auto; padding: 16px; }
 .rtable td:nth-child(-n+4) { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .rtable a { color: var(--ink); }
 @media (max-width: 600px) { .rtable th:nth-child(3), .rtable td:nth-child(3) { display: none; } }
+
+.tabs { display: flex; gap: 6px; margin: 10px 0 2px; }
+.tabs a { padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 0.88rem; color: var(--ink); text-decoration: none; background: var(--panel); }
+.tabs a.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ft-snip { display: block; margin-top: 2px; font-family: "Noto Serif KR", "Noto Serif CJK KR", serif; font-size: 0.88rem; color: var(--muted); word-break: break-all; }
+.ft-snip mark { background: var(--accent-soft); color: var(--ink); padding: 0 1px; }

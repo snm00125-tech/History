@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { type Index, loadIndex } from "@/lib/data";
 import { type PersonHit, findPersons } from "@/lib/person";
+import { type FtHit, ftCandidates, ftVerify } from "@/lib/fulltext";
 import { type Doc, candidates, verify } from "@/lib/search";
 
 const PAGE = 100;
@@ -13,6 +14,7 @@ function SearchInner() {
   const sp = useSearchParams();
   const router = useRouter();
   const q = sp.get("q") ?? "";
+  const mode = sp.get("mode") === "text" ? "text" : "title";
   const [input, setInput] = useState(q);
   const [idx, setIdx] = useState<Index | null>(null);
   const [ids, setIds] = useState<number[] | null>(null);
@@ -22,6 +24,7 @@ function SearchInner() {
   const [busy, setBusy] = useState(false);
   const [bookFilter, setBookFilter] = useState<string | null>(null);
   const [people, setPeople] = useState<PersonHit[]>([]);
+  const [hits, setHits] = useState<FtHit[]>([]);
 
   useEffect(() => {
     loadIndex().then(setIdx);
@@ -33,10 +36,31 @@ function SearchInner() {
     setMsg("");
     setBookFilter(null);
     setPeople([]);
+    setHits([]);
     if (!q) return;
-    findPersons(q, 12).then(setPeople);
     let live = true;
     setBusy(true);
+    if (mode === "text") {
+      (async () => {
+        const c = await ftCandidates(q);
+        if (!live) return;
+        if ("error" in c) {
+          setMsg(c.error);
+          setBusy(false);
+          return;
+        }
+        setIds(c.ids);
+        const r = await ftVerify(q, c.ids, 0, 50);
+        if (!live) return;
+        setHits(r.hits);
+        setNext(r.next);
+        setBusy(false);
+      })();
+      return () => {
+        live = false;
+      };
+    }
+    findPersons(q, 12).then(setPeople);
     (async () => {
       const c = await candidates(q);
       if (!live) return;
@@ -55,11 +79,18 @@ function SearchInner() {
     return () => {
       live = false;
     };
-  }, [q]);
+  }, [q, mode]);
 
   async function more() {
     if (!ids) return;
     setBusy(true);
+    if (mode === "text") {
+      const r = await ftVerify(q, ids, next, 50);
+      setHits((h) => [...h, ...r.hits]);
+      setNext(r.next);
+      setBusy(false);
+      return;
+    }
     const r = await verify(q, ids, next, PAGE);
     setDocs((d) => [...d, ...r.docs]);
     setNext(r.next);
@@ -76,13 +107,25 @@ function SearchInner() {
         className="datejump"
         onSubmit={(e) => {
           e.preventDefault();
-          router.push(`/search/?q=${encodeURIComponent(input.trim())}`);
+          router.push(`/search/?q=${encodeURIComponent(input.trim())}${mode === "text" ? "&mode=text" : ""}`);
         }}
       >
         <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="예: 이순신, 훈민정음, 거북선 (인물·기사 제목)" aria-label="검색어" />
         <button type="submit">찾기</button>
       </form>
-      <p className="hint">기사 제목(국편 국문 제목·비변사등록 제목·일기 첫머리)에서 찾습니다. 날짜순으로 보여 줍니다.</p>
+      <div className="tabs">
+        <Link className={mode === "title" ? "on" : ""} href={`/search/?q=${encodeURIComponent(q)}`}>
+          제목·인물
+        </Link>
+        <Link className={mode === "text" ? "on" : ""} href={`/search/?q=${encodeURIComponent(q)}&mode=text`}>
+          원문(한문)
+        </Link>
+      </div>
+      <p className="hint">
+        {mode === "text"
+          ? "원문(한문) 본문에서 찾습니다. 한자로 넣으세요(예: 龜船, 李舜臣, 閑山). 구두점·띄어쓰기는 무시합니다. 날짜순."
+          : "기사 제목(국편 국문 제목·비변사등록 제목·일기 첫머리)과 인물 이름에서 찾습니다. 날짜순."}
+      </p>
       {people.length > 0 && (
         <section className="panel">
           <h3 className="ptitle">인물</h3>
@@ -103,7 +146,33 @@ function SearchInner() {
       )}
       {msg && <p className="error">{msg}</p>}
       {busy && <p className="hint">찾는 중…</p>}
-      {ids && !busy && (
+      {mode === "text" && ids && !busy && (
+        <p className="stats">
+          「{q}」 원문 후보 {ids.length.toLocaleString()}건 중 {next.toLocaleString()}건 확인, {hits.length.toLocaleString()}건 찾음
+          {next < ids.length && " (더 있음)"}
+        </p>
+      )}
+      {mode === "text" && (
+        <ul className="results fthits">
+          {hits.map(({ doc: [t, solar, id, b], before, match, after }) => (
+            <li key={id}>
+              <Link href={solar ? `/view/?ym=${solar.slice(0, 7)}&d=${Number(solar.slice(8))}#${id}` : "#"}>
+                <span className="r-date">{solar ? solar.replaceAll("-", ".") : "날짜 없음"}</span>
+                <span className="r-title">
+                  {t}
+                  <span className="ft-snip">
+                    …{before}
+                    <mark>{match}</mark>
+                    {after}…
+                  </span>
+                </span>
+              </Link>
+              <span className="r-book">{books[b] ?? b}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {mode === "title" && ids && !busy && (
         <p className="stats">
           「{q}」 후보 {ids.length.toLocaleString()}건 중 {docs.length.toLocaleString()}건 표시
           {next < ids.length && " (더 있음)"}
@@ -121,7 +190,7 @@ function SearchInner() {
           ))}
         </div>
       )}
-      <ul className="results">
+      <ul className="results" hidden={mode === "text"}>
         {shown.map(([t, solar, id, b]) => (
           <li key={id}>
             {solar ? (

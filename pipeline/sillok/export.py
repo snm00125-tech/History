@@ -25,7 +25,7 @@ from hdate.regnal import labels_for
 
 from hdate import lunar_to_jdn
 
-from . import search_index
+from . import fulltext_index, search_index
 from .export_person import export_persons
 from .category import GROUP_NAMES
 
@@ -111,6 +111,8 @@ def build_kings(con, events: list[dict]) -> list[dict]:
     return out
 
 
+FULLTEXT = True  # 원문 본문 색인(약 7분). 빠르게 다시 내보낼 때는 False
+
 REVIEW_LABEL = {"ganji_adjusted": "일진에 맞춰 날짜 조정", "ganji_conflict": "일진 불일치(표 날짜 유지)",
                 "invalid_date": "날짜 오류(표에 없는 날)"}
 
@@ -161,6 +163,7 @@ def export(db: str, out: str) -> dict:
 
     months: dict[str, dict] = defaultdict(lambda: {"days": defaultdict(list), "monthly": []})
     search_docs: list[tuple[str, str, str, str]] = []
+    search_texts: list[str] = []
     otd: dict[str, list] = defaultdict(list)
     undated = []
     persons_of: dict[str, list] = defaultdict(list)
@@ -183,6 +186,7 @@ def export(db: str, out: str) -> dict:
         if review:
             art["r"] = status
         search_docs.append((art["t"], day_info(js)["solar"] if js is not None else "", aid, book))
+        search_texts.append(text)
         if prec == "day":
             ym, md = _ym(js)
             months[ym]["days"][js].append(art)
@@ -234,6 +238,7 @@ def export(db: str, out: str) -> dict:
                     continue
                 kings.append({"king": k, "first": mi["ym"]})
     search_stats = search_index.build(search_docs, outp / "s")
+    fulltext_stats = fulltext_index.build(search_texts, outp / "f") if FULLTEXT else {}
     doc_of = {d[2]: i for i, d in enumerate(search_docs)}
     person_stats = export_persons(con, outp, doc_of, lambda j: day_info(j)["solar"])
     review = build_review(con, titles, books)
@@ -245,7 +250,7 @@ def export(db: str, out: str) -> dict:
              "total": sum(mi["n"] for mi in month_index) + len(undated), "undated": len(undated),
              "summarized": len(sums)}
     (outp / "index.json").write_text(json.dumps(index, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    return {"months": len(month_index), "articles": index["total"], "search": search_stats, "persons": person_stats,
+    return {"months": len(month_index), "articles": index["total"], "search": search_stats, "fulltext": fulltext_stats, "persons": person_stats,
             "secs": round(time.perf_counter() - t0, 1)}
 
 
