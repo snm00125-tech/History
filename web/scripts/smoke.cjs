@@ -38,6 +38,7 @@ const CHECKS = [
   ["연도별 도식", "/timeline/", ".tl-svg rect"],
   ["기원전 날짜", "/view/?ym=-057-05", ".card"],
   ["고려 날짜", "/view/?ym=1019-03", ".card"],
+  ["지도", "/map/", ".map-dot"],
 ];
 
 (async () => {

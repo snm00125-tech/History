@@ -263,3 +263,26 @@ main { max-width: 960px; margin: 0 auto; padding: 16px; }
 .tl-legend button { background: none; border: 0; padding: 2px 4px; color: inherit; font: inherit; cursor: pointer; border-radius: 4px; }
 .tl-legend button.off { opacity: 0.4; text-decoration: line-through; }
 .tl-legend small { color: var(--muted); }
+
+/* 지도 (/map/) */
+.mapview .yr { display: inline-flex; align-items: center; gap: 4px; font-size: 0.9rem; }
+.mapview .yr input { width: 5.5em; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); }
+.map-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; }
+@media (max-width: 800px) { .map-grid { grid-template-columns: 1fr; } }
+.map-box { height: 620px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; z-index: 0; }
+@media (max-width: 800px) { .map-box { height: 420px; } }
+.map-side { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; max-height: 620px; overflow-y: auto; }
+.map-side h2 { font-size: 1.1rem; margin: 6px 0; }
+.map-side h2 small, .map-top small { color: var(--muted); font-weight: 400; }
+.map-side h3 { font-size: 0.9rem; margin: 14px 0 4px; color: var(--muted); }
+.map-top { margin: 0; padding-left: 22px; font-size: 0.9rem; }
+.map-top li { display: flex; justify-content: space-between; gap: 8px; }
+.map-top li::marker { color: var(--muted); }
+.map-top span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.map-states { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 0.8rem; color: var(--muted); margin: 0; }
+.linkish { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-align: left; }
+.map-dot { fill: var(--accent); fill-opacity: 0.5; stroke: #fff; stroke-opacity: 0.9; }
+.map-dot.sel { fill-opacity: 0.95; stroke: var(--ink); }
+.map-prov { background: none; border: 0; color: var(--ink); font-weight: 700; font-size: 13px; white-space: nowrap; text-shadow: 0 0 3px #fff, 0 0 3px #fff; width: auto !important; height: auto !important; }
+.map-prov small { display: block; font-weight: 400; font-size: 11px; color: var(--muted); }
+@media (prefers-color-scheme: dark) { .map-prov { text-shadow: 0 0 3px #000, 0 0 3px #000; } }

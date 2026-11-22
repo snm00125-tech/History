@@ -28,6 +28,7 @@ from hdate import lunar_to_jdn
 
 from . import fulltext_index, search_index
 from .export_person import export_persons
+from .export_geo import export_geo
 from .category import GROUP_NAMES
 
 EVENTS = Path(__file__).parents[1] / "events" / "joseon.json"
@@ -438,6 +439,7 @@ def export(db: str, out: str) -> dict:
     fulltext_stats = fulltext_index.build(search_texts, outp / "f") if FULLTEXT else {}
     doc_of = {d[2]: i for i, d in enumerate(search_docs)}
     person_stats = export_persons(con, outp, doc_of, lambda j: day_info(j)["solar"])
+    geo_stats = export_geo(con, outp, doc_of, search_docs)
     (outp / "terms.json").write_text(json.dumps([{**t, "verified": False} for t in terms], ensure_ascii=False,
                                                 separators=(",", ":")), encoding="utf-8")
     review = build_review(con, titles, books)
@@ -452,7 +454,7 @@ def export(db: str, out: str) -> dict:
              "total": sum(mi["n"] for mi in month_index) + len(undated), "undated": len(undated),
              "summarized": len(sums)}
     (outp / "index.json").write_text(json.dumps(index, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    return {"months": len(month_index), "articles": index["total"], "search": search_stats, "fulltext": fulltext_stats, "persons": person_stats,
+    return {"months": len(month_index), "articles": index["total"], "search": search_stats, "fulltext": fulltext_stats, "persons": person_stats, "geo": geo_stats,
             "secs": round(time.perf_counter() - t0, 1)}
 
 

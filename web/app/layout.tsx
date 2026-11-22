@@ -20,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <nav className="topnav">
             <Link href="/search/">검색</Link>
             <Link href="/timeline/">연도별</Link>
+            <Link href="/map/">지도</Link>
             <Link href="/kings/">왕별 연표</Link>
             <Link href="/terms/">용어</Link>
             <Link href="/review/">날짜 검수</Link>

@@ -172,6 +172,10 @@ web/             Next.js + TypeScript 정적 사이트(output: export). public/d
   `sillok/date_review.py`(적재 뒤 실행)가 규칙으로 확정: 한 달 통째 밀림(month_shift)·달 가장자리·고립 오기(ganji_typo)·한 달 전체 일진 오류(ganji_month_error)·없는 날(no_such_day→month). 규칙은 `review_rule` 칸. 사람 확인 남은 것 약 490건(고립 불일치 376 등).
 - **연도별 도식** `/timeline/`(`timeline.json`, `export.build_timeline`): 기원전 706~2008년 연도별 기사 수(자료 8묶음 누적 막대, 색 순서 고정·색약 검증함) 또는 분류 하나.
   위에 왕조 띠(`export.DYNASTIES`, 통설 연대)·왕 막대(조선=그 왕 실록, 고려·삼국=원자료 왕력의 첫~끝 기사)·★ 사건(이 앱 주요 사건 + 국편 연표 중요도 1). 휠·끌기 확대, 범례 눌러 자료 숨기기, 표로 보기, 막대 누르면 그해로.
+- **지도** `/map/`: 지명 좌표 사전 `pipeline/geo/places.json`(`tools/build_gazetteer.py`, git에 넣음) × 원문 지명 색인(span index:지명) → `data/geo/`(`sillok/export_geo.py`, 혼자 돌리면 20초).
+  상위 3,000 지명 중 1,416곳(언급의 62%: 지명 48% + 도 14%), 나라 이름(倭·明 등 17%)은 점 없이 목록. 좌표 = 위키데이터(한자 이름 직접 일치, 또는 한자→한글 읽기표 `data/geo/hanja_reading.json`
+  (역사지리·인물 이름의 한자/한글 짝에서 만든 글자 읽기, 99.8% 읽음)로 한국어 이름·별칭 검색). 읽기로 찾은 것은 한반도 안만, 외국 지명은 OVERRIDE 표. 조선 도는 지금 남·북도 좌표 가운데.
+  후보가 여럿이면 행정구역 우선(cands에 후보 수, verified=false). 예: 露梁은 노량진으로 잡힘(노량 해전의 노량과 다를 수 있음). 바탕 지도 OpenStreetMap 타일(사용자 브라우저가 직접 받음), Leaflet.
 - **왕별 연표** `/kings/`(`kings.json`): 27왕, 재위 막대 = 그 왕 실록의 첫~끝 기사(양력). 펼치면 연도별 그 왕 실록 기사 수 막대(누르면 그해 첫 달로), 재위 중 주요 사건.
   난중일기·징비록은 공공데이터에 없다.
 - 글꼴: Pretendard(npm `pretendard`, 사이트에 내장).
