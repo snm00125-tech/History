@@ -15,6 +15,7 @@ done
 python3 -m sillok.load_bb data/raw/khdb_15053636/x data/work.sqlite
 python3 -m sillok.load_sa data/raw/khdb_15053632/x data/work.sqlite
 python3 -m sillok.load_person data/raw/person_15053645/x data/work.sqlite
+python3 -m sillok.date_review data/work.sqlite
 python3 -m pytest -q
 python3 -m sillok.export data/work.sqlite ../web/public/data
 if [ -z "${SKIP_BUILD:-}" ]; then

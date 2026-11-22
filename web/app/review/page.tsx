@@ -5,7 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { type Index, loadIndex } from "@/lib/data";
 
 type Item = { id: string; t: string; lunarDay: number | null; ganji: string | null; solar: string | null; tableSolar: string | null };
-type Group = { key: string; book: string; bookName: string; lunarMonth: string; status: string; label: string; delta: number | null; items: Item[] };
+type Group = {
+  key: string; book: string; bookName: string; lunarMonth: string; status: string; label: string; delta: number | null; items: Item[];
+  rule: string | null; ruleLabel: string; open: boolean;
+};
 
 const STORE = "history-review-done";
 function readDone(): Record<string, boolean> {
@@ -21,6 +24,7 @@ export default function ReviewPage() {
   const [idx, setIdx] = useState<Index | null>(null);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [status, setStatus] = useState<string | null>(null);
+  const [scope, setScope] = useState<"open" | "auto" | "all">("open");
   const [hideDone, setHideDone] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
 
@@ -44,7 +48,13 @@ export default function ReviewPage() {
     return c;
   }, [groups]);
   const labels = Object.fromEntries(groups.map((g) => [g.status, g.label]));
-  const shown = groups.filter((g) => (!status || g.status === status) && (!hideDone || !done[g.key]));
+  const shown = groups.filter(
+    (g) =>
+      (scope === "all" || (scope === "open" ? g.open : !g.open)) &&
+      (!status || g.status === status) &&
+      (!hideDone || !done[g.key]),
+  );
+  const openN = groups.filter((g) => g.open).reduce((a, g) => a + g.items.length, 0);
   const total = groups.reduce((a, g) => a + g.items.length, 0);
   const doneItems = groups.filter((g) => done[g.key]).reduce((a, g) => a + g.items.length, 0);
   void idx;
@@ -57,8 +67,16 @@ export default function ReviewPage() {
         달·같은 차이끼리 묶었습니다. 확인한 묶음에 표시하면 이 브라우저에 기억됩니다.
       </p>
       <p className="stats">
-        전체 {total.toLocaleString()}건 · {groups.length}묶음 · 확인함 {doneItems.toLocaleString()}건
+        전체 {total.toLocaleString()}건 중 규칙으로 확정 {(total - openN).toLocaleString()}건 · 사람 확인 필요 {openN.toLocaleString()}건 · 내가 확인함{" "}
+        {doneItems.toLocaleString()}건
       </p>
+      <div className="filters">
+        {([["open", "사람 확인 필요"], ["auto", "규칙으로 확정"], ["all", "전체"]] as const).map(([k, l]) => (
+          <button key={k} className={scope === k ? "on" : ""} onClick={() => setScope(k)}>
+            {l}
+          </button>
+        ))}
+      </div>
       <div className="filters">
         <button className={!status ? "on" : ""} onClick={() => setStatus(null)}>
           전체

@@ -221,3 +221,5 @@ main { max-width: 960px; margin: 0 auto; padding: 16px; }
 .terms dd, .termlist dd { margin: 2px 0 0; font-size: 0.88rem; color: var(--muted); }
 .termlist { margin-top: 8px; }
 .termlist dd { color: var(--ink); }
+.rule { margin: 2px 0 0 26px; }
+.rule.open { color: var(--warn); }

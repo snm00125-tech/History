@@ -144,22 +144,38 @@ REVIEW_LABEL = {"ganji_adjusted": "일진에 맞춰 날짜 조정", "ganji_confl
                 "invalid_date": "날짜 오류(표에 없는 날)"}
 
 
+RULE_LABEL = {
+    "month_shift": "달 전체가 같은 날수만큼 밀림 → 달 경계 차이로 확정",
+    "month_edge": "달 앞·뒤만 밀림 → 큰달·작은달 차이로 확정",
+    "month_all_dated": "그 달 모든 날이 같은 차이 → 확정",
+    "ganji_typo": "그 달 다른 날은 맞음 → 머리 일진 오기, 표 날짜 확정",
+    "ganji_month_error": "한 달 내내 같은 큰 차이 → 원자료 간지 오류, 표 날짜 확정",
+    "isolated": "하루만 어긋남 → 일진 오기인지 날짜 오기인지 사람 확인 필요",
+    "no_such_day": "표에 없는 날 → 그 달 단위로 배치, 사람 확인 필요",
+}
+
+
 def build_review(con, titles: dict, books: dict) -> list[dict]:
     """검수 대상(needs_review=1)을 (책, 음력 연·월, 윤, 상태, 차이) 묶음으로. 한 달이 통째로 밀린 경우가 한 묶음이 된다."""
     groups: dict[tuple, dict] = {}
-    for aid, book, ly, lm, lp, ld, gz, j, jt, st, dl in con.execute(
-            """SELECT id, book, lunar_year, lunar_month, lunar_leap, lunar_day, day_ganji_src, jdn, jdn_table,
-                      jdn_status, ganji_delta FROM article WHERE needs_review=1 ORDER BY COALESCE(jdn, jdn_table), id"""):
-        key = (book, ly, lm, lp, st, dl)
+    has_rule = "review_rule" in [r[1] for r in con.execute("PRAGMA table_info(article)")]
+    rule_col = "review_rule" if has_rule else "NULL"
+    for aid, book, ly, lm, lp, ld, gz, j, jt, st, dl, rule, open_ in con.execute(
+            f"""SELECT id, book, lunar_year, lunar_month, lunar_leap, lunar_day, day_ganji_src, jdn, jdn_table,
+                      jdn_status, ganji_delta, {rule_col}, needs_review FROM article
+                WHERE jdn_status IN ('ganji_adjusted','ganji_conflict','invalid_date')
+                ORDER BY COALESCE(jdn, jdn_table, jdn_start), id"""):
+        key = (book, ly, lm, lp, st, dl, rule)
         g = groups.get(key)
         if g is None:
-            g = groups[key] = {"key": f"{book}-{ly}-{lm}{'L' if lp else ''}-{st}-{dl}", "book": book,
+            g = groups[key] = {"key": f"{book}-{ly}-{lm}{'L' if lp else ''}-{st}-{dl}-{rule}", "book": book,
                                "bookName": books.get(book, book), "lunarMonth": f"{ly}년 {'윤' if lp else ''}{lm}월",
-                               "status": st, "label": REVIEW_LABEL.get(st, st), "delta": dl, "items": []}
+                               "status": st, "label": REVIEW_LABEL.get(st, st), "delta": dl, "items": [],
+                               "rule": rule, "ruleLabel": RULE_LABEL.get(rule, ""), "open": bool(open_)}
         g["items"].append({"id": aid, "t": titles.get(aid, ""), "lunarDay": ld, "ganji": gz,
                            "solar": day_info(j)["solar"] if j else None,
                            "tableSolar": day_info(jt)["solar"] if jt else None})
-    return sorted(groups.values(), key=lambda g: -len(g["items"]))
+    return sorted(groups.values(), key=lambda g: (not g["open"], -len(g["items"])))
 
 
 def _ym(jdn: int) -> tuple[str, str]:
