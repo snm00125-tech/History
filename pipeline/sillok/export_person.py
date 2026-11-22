@@ -12,6 +12,8 @@ from collections import defaultdict
 from pathlib import Path
 
 SHARD = 500
+WIKI = Path(__file__).parents[1] / "persons" / "wiki.json"  # tools/build_person_wiki.py
+CO_MIN_DOCS = 10  # 함께 나오는 인물은 기사 10건 이상인 사람만 계산
 CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"
 
 
@@ -26,7 +28,9 @@ def choseong(s: str) -> str:
     return CHO[c // 588] if 0 <= c < 11172 else "etc"
 
 
-def export_persons(con, out: Path, doc_of: dict[str, int], solar_of) -> dict:
+def export_persons(con, out: Path, doc_of: dict[str, int], solar_of, doc_year=None) -> dict:
+    """doc_year(문서 번호) → 연도 문자열(없으면 연도별 막대 생략)."""
+    solar_doc = doc_year or (lambda d: None)
     if not con.execute("SELECT 1 FROM sqlite_master WHERE name='article_person'").fetchone():
         return {}
     (out / "p").mkdir(parents=True, exist_ok=True)
@@ -39,6 +43,21 @@ def export_persons(con, out: Path, doc_of: dict[str, int], solar_of) -> dict:
     for pid, j, y, office, status, aid in con.execute(
             "SELECT person_id, jdn, lunar_year, office, status, article_id FROM person_office ORDER BY person_id, jdn"):
         offs[pid].append([solar_of(j) if j else (str(y) if y else ""), office, status, doc_of.get(aid, -1)])
+    wiki = json.loads(WIKI.read_text(encoding="utf-8"))["persons"] if WIKI.exists() else {}
+    names = dict(con.execute("SELECT id, name_ko FROM person"))
+    # 함께 나오는 인물: 같은 기사에 함께 나온 횟수(원문 색인 기준, 기사당 30명까지)
+    by_art: dict[str, list[str]] = defaultdict(list)
+    for aid, pid in con.execute("SELECT article_id, person_id FROM article_person"):
+        by_art[aid].append(pid)
+    big = {pid for pid, ds in docs.items() if len(ds) >= CO_MIN_DOCS}
+    co: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for ps in by_art.values():
+        ps = ps[:30]
+        for a in ps:
+            if a in big:
+                for b in ps:
+                    if b != a:
+                        co[a][b] += 1
     shards: dict[int, dict] = defaultdict(dict)
     index: dict[str, list] = defaultdict(list)
     for pid, ko, hj, ja, ho, siho, bon, born, died, kind in con.execute("SELECT * FROM person"):
@@ -51,7 +70,18 @@ def export_persons(con, out: Path, doc_of: dict[str, int], solar_of) -> dict:
             prev = x
         info = {k: v for k, v in (("ko", ko), ("hj", hj), ("ja", ja), ("ho", ho), ("siho", siho), ("bon", bon),
                                   ("born", born), ("died", died), ("kind", kind)) if v}
-        shards[shard_of(pid)][pid] = {**info, "docs": enc, "off": offs.get(pid, [])}
+        rec = {**info, "docs": enc, "off": offs.get(pid, [])}
+        yc: dict[str, int] = defaultdict(int)  # 연도별 기사 수
+        for x in ds:
+            y = solar_doc(x)
+            if y is not None:
+                yc[y] += 1
+        rec["yc"] = dict(sorted(yc.items(), key=lambda kv: int(kv[0])))
+        if pid in co:
+            rec["co"] = [[q, names.get(q, ""), n] for q, n in sorted(co[pid].items(), key=lambda kv: -kv[1])[:12]]
+        if pid in wiki:
+            rec["wiki"] = wiki[pid]
+        shards[shard_of(pid)][pid] = rec
         index[choseong(ko or "")].append([pid, ko, hj, born, died, kind, len(ds), ds[0], ds[-1]])
     for n, m in shards.items():
         (out / "p" / f"{n}.json").write_text(json.dumps(m, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")

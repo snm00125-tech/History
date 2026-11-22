@@ -438,7 +438,8 @@ def export(db: str, out: str) -> dict:
     search_stats = search_index.build(search_docs, outp / "s")
     fulltext_stats = fulltext_index.build(search_texts, outp / "f") if FULLTEXT else {}
     doc_of = {d[2]: i for i, d in enumerate(search_docs)}
-    person_stats = export_persons(con, outp, doc_of, lambda j: day_info(j)["solar"])
+    person_stats = export_persons(con, outp, doc_of, lambda j: day_info(j)["solar"],
+                                  lambda d: search_docs[d][1][:-6] or None)
     geo_stats = export_geo(con, outp, doc_of, search_docs)
     (outp / "terms.json").write_text(json.dumps([{**t, "verified": False} for t in terms], ensure_ascii=False,
                                                 separators=(",", ":")), encoding="utf-8")

@@ -15,6 +15,16 @@ export type Person = {
   kind?: string;
   docs: number[]; // 차분 부호화
   off: [solar: string, office: string, status: string, doc: number][];
+  yc?: Record<string, number>; // 연도별 기사 수
+  co?: [id: string, ko: string, n: number][]; // 같은 기사에 자주 함께 나오는 인물
+  wiki?: {
+    qid: string;
+    title: string | null;
+    match: string;
+    summary?: string;
+    url?: string;
+    img?: { thumb: string; page: string; license: string; artist: string; desc: string };
+  };
 };
 
 const cache = new Map<string, Promise<unknown>>();

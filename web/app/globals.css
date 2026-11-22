@@ -286,3 +286,17 @@ main { max-width: 960px; margin: 0 auto; padding: 16px; }
 .map-prov { background: none; border: 0; color: var(--ink); font-weight: 700; font-size: 13px; white-space: nowrap; text-shadow: 0 0 3px #fff, 0 0 3px #fff; width: auto !important; height: auto !important; }
 .map-prov small { display: block; font-weight: 400; font-size: 11px; color: var(--muted); }
 @media (prefers-color-scheme: dark) { .map-prov { text-shadow: 0 0 3px #000, 0 0 3px #000; } }
+
+/* 인물: 위키 요약·초상, 연도별 막대, 함께 나오는 인물 */
+.pwiki { display: flex; gap: 16px; align-items: flex-start; }
+.pwiki figure { margin: 0; flex: 0 0 160px; }
+.pwiki img { width: 160px; height: auto; border-radius: 6px; border: 1px solid var(--line); display: block; }
+.pwiki figcaption { font-size: 0.72rem; color: var(--muted); margin-top: 4px; line-height: 1.35; }
+.pwiki h3 { margin: 0 0 6px; }
+@media (max-width: 600px) { .pwiki { flex-direction: column; } .pwiki figure { flex-basis: auto; } }
+.ybars svg { width: 100%; height: 110px; display: block; }
+.yb { fill: var(--accent); opacity: 0.75; }
+.yb.on { opacity: 1; }
+.yb-base { stroke: var(--muted); stroke-width: 1; }
+.cops { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 4px 0; }
+.cops small { color: var(--muted); }

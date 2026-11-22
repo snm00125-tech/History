@@ -66,6 +66,60 @@ function PersonInner() {
         국사편찬위원회 실록 부가정보.
       </p>
 
+      {p.wiki && (p.wiki.summary || p.wiki.img) && (
+        <section className="panel pwiki">
+          {p.wiki.img && (
+            <figure>
+              <a href={p.wiki.img.page} target="_blank" rel="noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.wiki.img.thumb} alt={`${p.ko} 그림`} loading="lazy" />
+              </a>
+              <figcaption>
+                {p.wiki.img.artist && `${p.wiki.img.artist} · `}
+                {p.wiki.img.license || "저작권 정보 없음"} ·{" "}
+                <a href={p.wiki.img.page} target="_blank" rel="noreferrer">
+                  위키미디어 공용
+                </a>
+              </figcaption>
+            </figure>
+          )}
+          <div>
+            <h3>위키백과 요약</h3>
+            {p.wiki.summary ? <p>{p.wiki.summary}</p> : <p className="hint">요약 없음</p>}
+            <p className="hint">
+              출처:{" "}
+              {p.wiki.url ? (
+                <a href={p.wiki.url} target="_blank" rel="noreferrer">
+                  한국어 위키백과 「{p.wiki.title}」
+                </a>
+              ) : (
+                "위키데이터"
+              )}{" "}
+              (CC BY-SA 4.0) · 국편 인물과 이름+{p.wiki.match}으로 이었습니다(이 앱 해설 아님) ·{" "}
+              <a href={`https://www.wikidata.org/wiki/${p.wiki.qid}`} target="_blank" rel="noreferrer">
+                위키데이터
+              </a>
+            </p>
+          </div>
+        </section>
+      )}
+
+      {p.yc && Object.keys(p.yc).length > 1 && <YearBars yc={p.yc} />}
+
+      {p.co && p.co.length > 0 && (
+        <section className="panel">
+          <h3>같은 기사에 자주 함께 나오는 인물</h3>
+          <p className="cops">
+            {p.co.map(([qid, ko, n]) => (
+              <Link key={qid} href={`/person/?id=${qid}`}>
+                {ko} <small>{n}</small>
+              </Link>
+            ))}
+          </p>
+          <p className="hint">원문 인명 색인에서 같은 기사에 함께 이름이 나온 횟수입니다(관계의 성격은 기사에서 확인).</p>
+        </section>
+      )}
+
       {p.off.length > 0 && (
         <section className="panel">
           <button className="linkbtn" onClick={() => setShowOff(!showOff)}>
@@ -106,6 +160,41 @@ function PersonInner() {
         </button>
       )}
     </div>
+  );
+}
+
+/** 연도별 기사 수 막대 (한 계열, 막대에 마우스를 올리면 수) */
+function YearBars({ yc }: { yc: Record<string, number> }) {
+  const ys = Object.keys(yc).map(Number);
+  const y0 = Math.min(...ys);
+  const y1 = Math.max(...ys);
+  const max = Math.max(...Object.values(yc));
+  const n = y1 - y0 + 1;
+  const W = 640;
+  const H = 90;
+  const bw = W / n;
+  const [hov, setHov] = useState<number | null>(null);
+  return (
+    <section className="panel">
+      <h3>
+        연도별 기사 수 <small className="hint">({y0}~{y1}년, 가장 많은 해 {max}건)</small>
+      </h3>
+      <div className="ybars">
+        <svg viewBox={`0 0 ${W} ${H + 16}`} preserveAspectRatio="none" role="img" aria-label="연도별 기사 수">
+          {Object.entries(yc).map(([y, c]) => {
+            const x = (Number(y) - y0) * bw;
+            const h = Math.max(1, (c / max) * H);
+            return (
+              <rect key={y} x={x + 0.5} y={H - h} width={Math.max(1, bw - 1)} height={h} rx={bw > 6 ? 2 : 0}
+                className={hov === Number(y) ? "yb on" : "yb"}
+                onPointerEnter={() => setHov(Number(y))} onPointerLeave={() => setHov(null)} />
+            );
+          })}
+          <line x1={0} x2={W} y1={H} y2={H} className="yb-base" />
+        </svg>
+        <p className="hint">{hov != null ? `${hov}년 · ${yc[hov]}건` : "막대에 마우스를 올리면 그해 기사 수"}</p>
+      </div>
+    </section>
   );
 }
 
