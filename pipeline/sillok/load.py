@@ -155,7 +155,7 @@ def load(src_dir: str, db_path: str, books=None) -> dict:
                 grps += [(a.id, g, i) for i, g in enumerate(groups_of(a.subjects))]
                 if a.title_ko_ref:
                     titles.append((a.id, a.title_ko_ref))
-            con.executemany("INSERT INTO article VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+            con.executemany("INSERT INTO article (id,book,lunar_year,lunar_month,lunar_leap,lunar_day,day_ganji_src,jdn,jdn_table,jdn_status,ganji_delta,needs_review,date_precision,jdn_start,jdn_end,text,subjects,sources,file,regnal_src) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
             con.executemany("INSERT INTO span VALUES (?,?,?,?,?)", spans)
             con.executemany("INSERT INTO ref_title_ko VALUES (?,?)", titles)
             con.executemany("INSERT INTO subject VALUES (?,?,?,?)", subs)

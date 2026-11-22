@@ -19,3 +19,24 @@ def test_split_days_forward_only():
 def test_nice_title():
     assert nice_title("[七月] 初二日", "初二日 朝食後 衙屬") == "[七月] 初二日 · 朝食後 衙屬"
     assert nice_title("統制使를 遞差하자는 啓", "...") == "統制使를 遞差하자는 啓"
+
+
+def test_diary_day_markers():
+    from sillok.load_sa import split_days, cn_num
+    assert cn_num("卄三") == 23
+    text = "一日 晴\n二日 雨 留二日而去\n卄日 風\n晦日 雪"
+    got = [(a.day) for _i, _t, a, _b, _s in split_days("x", "", text, 1593, 4, False)]
+    from hdate import lunar
+    assert got == [1, 2, 20, lunar.month_length(1593, 4)]  # 본문 속 "留二日"은 날 표시가 아니다
+
+
+def test_fix_years_by_ganji():
+    from types import SimpleNamespace
+    from hdate import ganji, lunar
+    from sillok.load_sa import fix_years_by_ganji
+    items = []
+    for d in range(1, 11):  # 실제는 1704년인데 간지 해 甲申을 1644로 짚은 경우
+        gz = ganji.name(ganji.day_index(lunar.lunar_to_jdn(1704, 1, d)), hanja=True)
+        items.append((f"b_0010_0020_d{d:02d}", "", SimpleNamespace(year=1644, month=1, day=d, leap=False, day_ganji=None),
+                      f"初{d}日{gz} 晴", []))
+    assert {a.year for _i, _t, a, _b, _s in fix_years_by_ganji(items)} == {1704}

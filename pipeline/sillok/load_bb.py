@@ -64,7 +64,7 @@ def load_bb(src: str, db: str) -> dict:
                 spans += [(aid, s.kind, s.start, s.end, s.ref) for s in sp]
                 if title:
                     titles.append((aid, title))
-            con.executemany("INSERT INTO article VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+            con.executemany("INSERT INTO article (id,book,lunar_year,lunar_month,lunar_leap,lunar_day,day_ganji_src,jdn,jdn_table,jdn_status,ganji_delta,needs_review,date_precision,jdn_start,jdn_end,text,subjects,sources,file,regnal_src) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
             con.executemany("INSERT INTO span VALUES (?,?,?,?,?)", spans)
             con.executemany("INSERT INTO ref_title_ko VALUES (?,?)", titles)
             n += len(rows)
