@@ -24,7 +24,7 @@ pipeline/        Python 스크립트 + SQLite 작업 DB
   reports/       집계 결과, 검수용 문서
   tools/         일회성 생성 스크립트
   tests/
-web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는다   (작업 예정)
+web/             Next.js + TypeScript 정적 사이트 (GitHub Pages)
 ```
 
 파이프라인 단계: 수집 → 분리(기사 단위) → 날짜 정규화(JDN) → 분류 → 요약 → 용어 → 검수 → 내보내기(날짜별 JSON).
@@ -110,6 +110,15 @@ web/             Next.js + TypeScript 정적 사이트. 날짜별 JSON을 읽는
   비교 문서: `reports/compare_1592_05_a_sonnet_opus.md`.
 - 검수 메모: 李𥕏(외자 한자)은 독음을 확정하지 못해 한자로 두었다. 新苽는 참외/오이 해석이 갈렸다(검수 필요).
 
+## 웹 `web/` · 내보내기 `sillok/export.py`
+
+- `export`가 작업 DB → `web/data/index.json` + `web/data/months/<음력연-월[L]>.json`(달 안에서 JDN별로 묶음)을 만든다. 이 JSON은 git에 넣는다(배포 빌드가 읽음).
+  국편 번역 산물(ref_title_ko)은 싣지 않는다(`FORBIDDEN_KEYS` 검사). `date_precision=none` 기사는 뺀다.
+- 쪽: `/` 연·달 목록과 양력 날짜 찾기, `/m/<달>/` 달(선조실록은 날짜별 목록, 수정실록은 달 단위 카드), `/d/<JDN>/` 날짜(기사 카드).
+  같은 JDN이 두 달 파일에 있으면(일진 조정) 날짜 쪽에서 합친다. 근거 오프셋은 코드포인트 기준이라 JS에서 `Array.from`으로 자른다.
+- 배포: `.github/workflows/pages.yml`이 작업 브랜치·기본 브랜치에 `web/**`가 push되면 빌드해 `gh-pages` 브랜치에 올린다(basePath = /저장소이름).
+  요약을 늘린 뒤에는 export를 다시 돌려 `web/data`를 커밋·push하면 다시 배포된다.
+
 ## 명령
 
 ```
@@ -121,6 +130,8 @@ cd pipeline && python3 -m sillok.summary data/work.sqlite summaries/pilot_1592_0
 cd pipeline && python3 -m sillok.review data/work.sqlite reports/pilot_1592_04_review.md 1592 4  # 검수 문서
 cd pipeline && .venv/bin/python -m sillok.generate prepare data/work.sqlite t1592_05 --years 1592 1592 --months 5  # 요청 준비
 cd pipeline && .venv/bin/python -m sillok.generate submit|status|collect|retry data/work.sqlite t1592_05
+cd pipeline && python3 -m sillok.export data/work.sqlite ../web/data 1592 1598   # 웹용 JSON (0.4초)
+cd web && npm ci && PAGES_BASE_PATH=/history npm run build                         # 정적 빌드 → web/out (약 16초)
 ```
 
 ## 작업 원칙
