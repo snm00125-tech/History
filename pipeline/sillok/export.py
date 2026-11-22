@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import sqlite3
 import sys
@@ -209,6 +210,62 @@ def _ym(jdn: int) -> tuple[str, str]:
     return s[:7], s[5:]
 
 
+# 연도 도식: 자료 묶음 8개(고정 순서 = 색 순서)
+SERIES = [("sillok", "조선왕조실록"), ("sjw", "승정원일기"), ("bb", "비변사등록"), ("goryeo", "고려사·고려사절요"),
+          ("ancient", "삼국사기·고대 사료"), ("diary", "일기·국조보감"), ("modern", "근현대 문서"), ("th", "국편 연표")]
+_SERIES_OF = {"sjw": 1, "bb": 2, "kr": 3, "kj": 3, "sg": 4, "ko": 4, "gjbg": 5, "jh": 6, "hk": 6, "dh": 6, "th": 7}
+
+
+def series_of(book: str) -> int:
+    if book.startswith("w"):
+        return 0
+    if book.startswith("sa"):
+        return 5
+    return _SERIES_OF.get(book, 5)
+
+
+# 왕조 띠: 통설 연대(교과서 기준). 줄(lane)이 같으면 같은 줄에 그린다.
+DYNASTIES = [
+    {"name": "고조선", "lane": 0, "start": -2333, "end": -108, "note": "건국 연대는 전승"},
+    {"name": "고구려", "lane": 0, "start": -37, "end": 668},
+    {"name": "백제", "lane": 1, "start": -18, "end": 660},
+    {"name": "신라", "lane": 2, "start": -57, "end": 935},
+    {"name": "발해", "lane": 0, "start": 698, "end": 926},
+    {"name": "고려", "lane": 1, "start": 918, "end": 1392},
+    {"name": "조선", "lane": 1, "start": 1392, "end": 1897},
+    {"name": "대한제국", "lane": 1, "start": 1897, "end": 1910},
+    {"name": "일제강점기", "lane": 1, "start": 1910, "end": 1945},
+    {"name": "미군정", "lane": 1, "start": 1945, "end": 1948},
+    {"name": "대한민국", "lane": 1, "start": 1948, "end": 2008},
+]
+
+
+def build_timeline(con, year_counts, group_counts, events, th_major, kings_full) -> dict:
+    years = sorted(year_counts)
+    y0, y1 = years[0], years[-1]
+    span = [y for y in range(y0, y1 + 1) if y != 0]  # 0년 없음
+    counts = [[year_counts.get(y, [0] * len(SERIES))[i] for y in span] for i in range(len(SERIES))]
+    groups = {g: [group_counts.get(y, {}).get(g, 0) for y in span] for g in GROUP_NAMES}
+    # 왕: 조선은 kings.json(그 왕 실록 첫~끝 기사), 고려·삼국은 원자료 왕력의 첫~끝 기사
+    kings = [{"dyn": "조선", "name": k["king"], "start": int(k["start"][:-6]), "end": int(k["end"][:-6])}
+             for k in kings_full]
+    rng: dict[str, list[int]] = {}
+    for reg, js, je in con.execute("""SELECT regnal_src, MIN(jdn_start), MAX(jdn_end) FROM article
+                                      WHERE book IN ('kr','kj','sg') AND regnal_src IS NOT NULL
+                                      AND jdn_start IS NOT NULL GROUP BY regnal_src"""):
+        k = " ".join(reg.split()[:-1])
+        r = rng.setdefault(k, [js, je])
+        r[0], r[1] = min(r[0], js), max(r[1], je)
+    for k, (js, je) in rng.items():
+        dyn, name = k.split(" ", 1)
+        kings.append({"dyn": dyn, "name": name, "start": int(day_info(js)["solar"][:-6]),
+                      "end": int(day_info(je)["solar"][:-6])})
+    evs = [{"name": e["name"], "solar": e["solar"], "src": "app"} for e in events] + th_major
+    return {"years": [y0, y1], "series": [{"key": k, "name": n} for k, n in SERIES], "counts": counts,
+            "groups": groups, "dynasties": DYNASTIES, "kings": sorted(kings, key=lambda k: k["start"]),
+            "events": sorted(evs, key=lambda e: tuple(int(x) for x in re.match(r"(-?\d+)-(\d+)-(\d+)", e["solar"]).groups()))}
+
+
 def export(db: str, out: str) -> dict:
     t0 = time.perf_counter()
     con = sqlite3.connect(db)
@@ -306,6 +363,9 @@ def export(db: str, out: str) -> dict:
                 write_month(e, new_month())
         cur_ym, cur = ym, new_month()
 
+    year_counts: dict[int, list[int]] = defaultdict(lambda: [0] * len(SERIES))
+    group_counts: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    th_major: list[dict] = []
     rows = con.execute("""SELECT id, book, lunar_year, lunar_month, lunar_leap, date_precision,
                                  jdn_start, jdn_end, jdn_status, needs_review, text, regnal_src, sources, lunar_day
                           FROM article ORDER BY jdn_start, book, id""")
@@ -329,6 +389,14 @@ def export(db: str, out: str) -> dict:
                 art["k"] = ks
         if review:
             art["r"] = status
+        if js is not None:
+            sol = day_info(js)["solar"]
+            yy = int(sol[:-6])
+            year_counts[yy][series_of(book)] += 1
+            for g in art["g"]:
+                group_counts[yy][g] += 1
+            if art.get("imp"):
+                th_major.append({"name": art["t"], "solar": sol, "src": "th"})
         search_docs.append((art["t"], day_info(js)["solar"] if js is not None else "", aid, book))
         search_texts.append("" if book in NO_FULLTEXT else text)
         if prec == "day":
@@ -377,6 +445,8 @@ def export(db: str, out: str) -> dict:
     kings_full = build_kings(con, events)
     (outp / "kings.json").write_text(json.dumps(kings_full, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (outp / "events.json").write_text(json.dumps(events, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    tl = build_timeline(con, year_counts, group_counts, events, th_major, kings_full)
+    (outp / "timeline.json").write_text(json.dumps(tl, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     index = {"books": books, "groups": GROUP_NAMES, "months": month_index, "kings": kings,
              "yearFile": [YEAR_FILE_BEFORE, YEAR_FILE_AFTER],
              "total": sum(mi["n"] for mi in month_index) + len(undated), "undated": len(undated),

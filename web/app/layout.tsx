@@ -4,8 +4,8 @@ import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "조선 기록 날짜별 보기",
-  description: "조선왕조실록·비변사등록 등 조선 기록을 날짜별로 보는 개인용 타임라인",
+  title: "한국사 기록 날짜별 보기",
+  description: "삼국사기·고려사·조선왕조실록·승정원일기 등 한국사 기록을 날짜별로 보는 개인용 타임라인",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -15,10 +15,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="top">
           <div className="top-inner">
           <Link href="/" className="brand">
-            조선 기록 <span>날짜별 보기</span>
+            한국사 기록 <span>날짜별 보기</span>
           </Link>
           <nav className="topnav">
             <Link href="/search/">검색</Link>
+            <Link href="/timeline/">연도별</Link>
             <Link href="/kings/">왕별 연표</Link>
             <Link href="/terms/">용어</Link>
             <Link href="/review/">날짜 검수</Link>

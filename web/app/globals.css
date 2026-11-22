@@ -224,3 +224,42 @@ main { max-width: 960px; margin: 0 auto; padding: 16px; }
 .rule { margin: 2px 0 0 26px; }
 .rule.open { color: var(--warn); }
 .dynasty { font-size: 0.95rem; margin: 0.8rem 0 0.3rem; color: var(--muted, #666); }
+
+/* 연도별 도식 (/timeline/) — 자료 묶음 색: 8칸 고정 순서, 밝음/어두움 검증함 */
+.tl {
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+}
+@media (prefers-color-scheme: dark) {
+  .tl {
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+  }
+}
+.tl-wrap { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; touch-action: pan-y; }
+.tl-svg { display: block; cursor: grab; user-select: none; }
+.tl-svg:active { cursor: grabbing; }
+.tl-dyn { fill: var(--has); stroke: var(--line); }
+.tl-dyn-t { font-size: 11px; fill: var(--ink); font-weight: 600; pointer-events: none; }
+.tl-king { fill: var(--accent-soft); }
+.tl-king.b { fill: var(--has); }
+.tl-king-t { font-size: 10px; fill: var(--muted); pointer-events: none; }
+.tl-ev { font-size: 12px; fill: var(--muted); cursor: pointer; opacity: 0.55; }
+.tl-ev.app { fill: var(--accent); opacity: 1; }
+.tl-base { stroke: var(--muted); stroke-width: 1; }
+.tl-grid { stroke: var(--line); stroke-width: 1; }
+.tl-tick { font-size: 10px; fill: var(--muted); }
+.tl-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0; font-size: 0.85rem; color: var(--muted); }
+.tl-legend i, .tl-tip i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.tl-tip { position: absolute; top: 90px; width: 220px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 0.8rem; box-shadow: 0 4px 14px rgba(0,0,0,0.12); pointer-events: none; }
+.tl-tip strong { display: block; }
+.tl-tip small { display: block; color: var(--muted); }
+.tl-tip .row { display: flex; align-items: center; }
+.tl-tip .row b { margin-left: auto; font-variant-numeric: tabular-nums; }
+.tl-tip .total { border-top: 1px solid var(--line); margin-top: 3px; padding-top: 3px; }
+.tl-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; display: block; overflow-x: auto; }
+.tl-table th, .tl-table td { padding: 3px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.tl-table th:first-child, .tl-table td:first-child { text-align: left; }
+.tl-legend button { background: none; border: 0; padding: 2px 4px; color: inherit; font: inherit; cursor: pointer; border-radius: 4px; }
+.tl-legend button.off { opacity: 0.4; text-decoration: line-through; }
+.tl-legend small { color: var(--muted); }

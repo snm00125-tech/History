@@ -170,6 +170,8 @@ web/             Next.js + TypeScript 정적 사이트(output: export). public/d
   화면: 기사 펼치면 「용어 풀이」, `/terms/` 용어 사전(분야 필터·찾기·그 말이 나오는 기사 검색).
 - **날짜 검수** `/review/`(`review.json`): needs_review 2,315건을 (책, 음력 연·월, 윤, 상태, 차이) 231묶음으로(한 달 통째 밀림이 한 묶음). 묶음별 원문 일진·표 날짜·쓰는 날짜·기사 링크. 「확인함」은 브라우저 localStorage에만 기억(DB 반영은 아직 없음).
   `sillok/date_review.py`(적재 뒤 실행)가 규칙으로 확정: 한 달 통째 밀림(month_shift)·달 가장자리·고립 오기(ganji_typo)·한 달 전체 일진 오류(ganji_month_error)·없는 날(no_such_day→month). 규칙은 `review_rule` 칸. 사람 확인 남은 것 약 490건(고립 불일치 376 등).
+- **연도별 도식** `/timeline/`(`timeline.json`, `export.build_timeline`): 기원전 706~2008년 연도별 기사 수(자료 8묶음 누적 막대, 색 순서 고정·색약 검증함) 또는 분류 하나.
+  위에 왕조 띠(`export.DYNASTIES`, 통설 연대)·왕 막대(조선=그 왕 실록, 고려·삼국=원자료 왕력의 첫~끝 기사)·★ 사건(이 앱 주요 사건 + 국편 연표 중요도 1). 휠·끌기 확대, 범례 눌러 자료 숨기기, 표로 보기, 막대 누르면 그해로.
 - **왕별 연표** `/kings/`(`kings.json`): 27왕, 재위 막대 = 그 왕 실록의 첫~끝 기사(양력). 펼치면 연도별 그 왕 실록 기사 수 막대(누르면 그해 첫 달로), 재위 중 주요 사건.
   난중일기·징비록은 공공데이터에 없다.
 - 글꼴: Pretendard(npm `pretendard`, 사이트에 내장).
