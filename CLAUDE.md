@@ -152,6 +152,12 @@ web/             Next.js + TypeScript 정적 사이트(output: export). public/d
   난중일기·징비록은 공공데이터에 없다.
 - 글꼴: Pretendard(npm `pretendard`, 사이트에 내장).
 
+## 아티팩트 (임진왜란 7년판)
+
+- https://claude.ai/artifact/MkNxuMbaTSMwyirXnhd84x (비공개, 사용자만). 한 페이지 앱 `artifact/imjin/index.html`(바닐라 JS) + `data/`(89개, 16MB) + Pretendard 글꼴.
+- 아티팩트 한도(511파일·256MB, 여러 주소·쿼리 불가) 때문에 Next.js 대신 따로 만든 판. 양력 1592-01~1599-02 달 파일을 그대로 쓰고, 제목·인물은 한 파일, 원문 검색은 달 파일 전체를 받아 훑는다.
+- 다시 만들기: `cd pipeline && python3 tools/build_artifact_imjin.py data/work.sqlite ../web/public/data ../artifact/imjin` → 글꼴 복사 → 같은 file_path로 다시 publish(`root`, `files` 지도).
+
 ## 남은 일 (사용자에게 다시 알릴 것)
 
 - **배포 대기**: Cloudflare 계정 fa49726b79350a5b7137af2f93dedcbc, workers.dev 하위 도메인 oreum-cloud → 주소 https://history.oreum-cloud.workers.dev (`web/wrangler.jsonc`).

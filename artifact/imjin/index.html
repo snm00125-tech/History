@@ -1,0 +1,337 @@
+<title>임진왜란 7년 실록</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&display=swap">
+<style>
+/* 레이아웃: 위 메뉴 한 줄 + 가운데 960px 단, 달력·카드·목록 */
+@font-face { font-family: "Pretendard Variable"; src: url("fonts/PretendardVariable.woff2") format("woff2"); font-weight: 45 920; font-display: swap; }
+:root {
+  --bg: #f6f3ec; --panel: #ffffff; --ink: #24201b; --muted: #6e665b; --line: #e2dbcf;
+  --accent: #9b2c2c; --accent-soft: #f5e3df; --has: #fbf2e2; --warn: #8a5a00; --warn-bg: #fff1d4;
+  --sum: #1f6b52; --sum-bg: #e0f1e9; --on-accent: #ffffff;
+  --sans: "Pretendard Variable", "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --serif: "Noto Serif KR", "Noto Serif CJK KR", "Batang", serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171513; --panel: #211e1b; --ink: #ece6dc; --muted: #a59b8e; --line: #38332d;
+  --accent: #e08a7d; --accent-soft: #3a2522; --has: #2a241c; --warn: #f0c060; --warn-bg: #3a2f17;
+  --sum: #7fd1ae; --sum-bg: #183128; --on-accent: #1b1210; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #171513; --panel: #211e1b; --ink: #ece6dc; --muted: #a59b8e; --line: #38332d;
+  --accent: #e08a7d; --accent-soft: #3a2522; --has: #2a241c; --warn: #f0c060; --warn-bg: #3a2f17;
+  --sum: #7fd1ae; --sum-bg: #183128; --on-accent: #1b1210; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.6; }
+a { color: var(--accent); }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; opacity: .4; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 960px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { background: var(--panel); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; padding-block: 12px; }
+.brand { font-weight: 700; font-size: 1.15rem; text-wrap: balance; }
+.brand span { color: var(--accent); }
+nav.menu { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+nav.menu button { background: none; border: 0; padding: 2px 0; color: var(--muted); font-weight: 500; }
+nav.menu button.on { color: var(--accent); border-bottom: 2px solid var(--accent); }
+main.wrap { padding-block: 16px 32px; }
+.hint { color: var(--muted); font-size: .85rem; margin: 6px 0; }
+.stats { color: var(--muted); font-size: .88rem; margin: 6px 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+h2 { margin: 0 0 6px; font-size: 1.25rem; text-wrap: balance; }
+h3 { margin: 0 0 6px; font-size: 1.02rem; }
+.monthnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.monthnav h2 { margin: 0; text-align: center; }
+.monthnav h2 small { color: var(--muted); font-weight: 400; font-size: .82rem; }
+.btn { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-bottom: 14px; }
+.wk { text-align: center; font-size: .78rem; color: var(--muted); }
+.cell { position: relative; min-height: 52px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 4px; text-align: left; }
+.cell.empty { border: 0; background: transparent; }
+.cell.has { background: var(--has); }
+.cell.sel { outline: 2px solid var(--accent); }
+.dnum { font-weight: 600; font-size: .88rem; }
+.lnum { position: absolute; top: 4px; right: 6px; font-size: .68rem; color: var(--muted); }
+.cnt { position: absolute; bottom: 4px; right: 5px; font-size: .72rem; background: var(--accent); color: var(--on-accent); border-radius: 999px; padding: 0 6px; font-variant-numeric: tabular-nums; }
+.cell.ev::after { content: "★"; position: absolute; bottom: 4px; left: 6px; font-size: .72rem; color: var(--accent); }
+.dayhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0 10px; }
+.dayhead > div { text-align: center; min-width: 0; }
+.dayhead h3 { margin: 0; font-size: 1.08rem; }
+.dayhead p { margin: 2px 0 0; color: var(--muted); font-size: .84rem; }
+.event { background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; }
+.event p { margin: 4px 0; }
+.event small { color: var(--muted); }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.filters button { padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font-size: .84rem; }
+.filters button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+.card.focus { outline: 2px solid var(--accent); }
+.card-head { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 11px 14px; }
+.card-title { display: block; font-weight: 600; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; font-size: .76rem; }
+.book { color: var(--muted); }
+.chip { padding: 0 8px; border-radius: 999px; background: var(--accent-soft); }
+.chip.sum { background: var(--sum-bg); color: var(--sum); }
+.chip.warn { background: var(--warn-bg); color: var(--warn); }
+.card-body { padding: 0 14px 14px; border-top: 1px solid var(--line); }
+.card-body h4 { margin: 12px 0 6px; font-size: .82rem; color: var(--muted); letter-spacing: .02em; }
+.card-body ul { margin: 0; padding-left: 20px; }
+.commentary { margin: 6px 0 0; font-size: .86rem; color: var(--muted); }
+.hanmun { font-family: var(--serif); font-size: 1.02rem; line-height: 1.9; white-space: pre-wrap; word-break: break-all; margin: 0; }
+.pchip { display: inline-block; margin: 0 6px 6px 0; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: .84rem; background: var(--panel); }
+.pchip:hover { border-color: var(--accent); color: var(--accent); }
+.ext { display: inline-block; margin-top: 10px; font-size: .84rem; }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { display: flex; gap: 10px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.list .go { display: flex; gap: 10px; flex: 1; min-width: 0; background: none; border: 0; padding: 0; text-align: left; }
+.list .go:hover .r-title { color: var(--accent); }
+.r-date { flex: 0 0 84px; color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+.r-title { flex: 1; min-width: 0; }
+.r-book { flex: 0 0 auto; color: var(--muted); font-size: .74rem; }
+.snip { display: block; margin-top: 2px; font-family: var(--serif); font-size: .86rem; color: var(--muted); word-break: break-all; }
+mark { background: var(--accent-soft); color: var(--ink); padding: 0 1px; }
+.searchbar { display: flex; gap: 8px; }
+.searchbar input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; }
+.ev-list li { display: block; }
+.ev-list .go { display: block; }
+.ev-date { color: var(--muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
+.ev-name { font-weight: 600; display: block; }
+.ev-desc { color: var(--muted); font-size: .9rem; display: block; }
+.hj { color: var(--muted); font-weight: 400; }
+.offs { max-height: 300px; overflow-y: auto; }
+.rtable-wrap { overflow-x: auto; }
+.rtable { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.rtable th, .rtable td { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
+.rtable th { color: var(--muted); font-weight: 500; }
+.rtable td:nth-child(-n+4) { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.loading { color: var(--muted); }
+footer.wrap { color: var(--muted); font-size: .78rem; padding-block: 0 24px; }
+@media (max-width: 600px) {
+  .cell { min-height: 42px; padding: 2px 3px; }
+  .lnum { display: none; }
+  .list li { flex-wrap: wrap; }
+  .r-book { width: 100%; padding-left: 94px; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<header class="top"><div class="wrap">
+  <div class="brand">임진왜란 <span>7년 실록</span></div>
+  <nav class="menu" id="menu">
+    <button data-view="calendar" class="on">달력</button>
+    <button data-view="events">주요 사건</button>
+    <button data-view="search">검색</button>
+    <button data-view="review">날짜 검수</button>
+  </nav>
+</div></header>
+<main class="wrap" id="app"><p class="loading">불러오는 중…</p></main>
+<footer class="wrap">1592~1598년(양력 1592년 1월~1599년 2월) 선조실록·선조수정실록·쇄미록. 원문·국문 제목: 국사편찬위원회 조선왕조실록·한국사데이터베이스(공공데이터포털). 요약은 원문을 보고 만든 것, 사건 설명은 이 앱의 해설(검수 전). 개인용.</footer>
+
+<script>
+"use strict";
+const $app = document.getElementById("app");
+const S = { view: "calendar", ym: "1592-05", day: 23, focus: null, filter: null, bookFilter: null, q: "", mode: "title", person: null, openCards: new Set() };
+let IDX = null, PERSONS = null, REVIEW = null;
+const cache = new Map();
+const getJSON = (p) => { if (!cache.has(p)) cache.set(p, fetch(p).then((r) => { if (!r.ok) throw new Error(p + " " + r.status); return r.json(); })); return cache.get(p); };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
+const REVIEW_LABEL = { ganji_adjusted: "일진에 맞춰 날짜 조정", ganji_conflict: "일진 불일치", invalid_date: "날짜 오류" };
+const sourceUrl = (id) => id.startsWith("w") ? `https://sillok.history.go.kr/id/${id}` : `https://db.history.go.kr/id/${id.replace(/_d\d\d(m\d\d)?$/, "")}`;
+const sourceSite = (id) => id.startsWith("w") ? "조선왕조실록 사이트" : "한국사데이터베이스";
+const fmtSolar = (s) => { const [y, m, d] = s.split("-").map(Number); return `${y}년 ${m}월 ${d}일`; };
+const dot = (s) => s ? s.replaceAll("-", ".") : "";
+
+function monthLen(y, m) { return [31, (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]; }
+function gregJdn(y, m, d) { const a = Math.floor((14 - m) / 12), yy = y + 4800 - a, mm = m + 12 * a - 3; return d + Math.floor((153 * mm + 2) / 5) + 365 * yy + Math.floor(yy / 4) - Math.floor(yy / 100) + Math.floor(yy / 400) - 32045; }
+
+function go(patch) { Object.assign(S, patch); render(); window.scrollTo({ top: 0 }); }
+function openDate(solar, id) { go({ view: "calendar", ym: solar.slice(0, 7), day: Number(solar.slice(8)), focus: id || null, filter: null, bookFilter: null }); }
+
+document.getElementById("menu").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-view]"); if (!b) return;
+  go({ view: b.dataset.view, focus: null });
+});
+
+function setMenu() { document.querySelectorAll("#menu button").forEach((b) => b.classList.toggle("on", b.dataset.view === S.view || (S.view === "person" && b.dataset.view === "search"))); }
+
+/* ---------- 기사 카드 ---------- */
+function cardHTML(a) {
+  const books = IDX.books, groups = IDX.groups;
+  const open = S.openCards.has(a.id) || S.focus === a.id;
+  const chips = (a.g || []).map((g) => `<span class="chip">${esc(groups[g] || g)}</span>`).join("");
+  let body = "";
+  if (open) {
+    if (a.s) body += `<h4>요약 · ${esc(a.s.title)}</h4><ul>${a.s.sentences.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>${(a.s.commentary || []).map((c) => `<p class="commentary">해설: ${esc(c)}</p>`).join("")}`;
+    if (a.p && a.p.length) body += `<h4>나오는 인물</h4>${a.p.map(([pid, n]) => `<button class="pchip" data-person="${esc(pid)}">${esc(n)}</button>`).join("")}`;
+    body += `<h4>원문</h4><p class="hanmun">${esc(a.x)}</p><a class="ext" href="${sourceUrl(a.id)}" target="_blank" rel="noreferrer">${sourceSite(a.id)}에서 번역·원문 보기 ↗</a>`;
+  }
+  return `<article class="card${S.focus === a.id ? " focus" : ""}" id="c-${esc(a.id)}">
+    <button class="card-head" data-card="${esc(a.id)}" aria-expanded="${open}">
+      <span class="card-title">${esc(a.t || (a.s && a.s.title) || "(제목 없음)")}</span>
+      <span class="meta"><span class="book">${esc(books[a.b] || a.b)}</span>${chips}${a.s ? '<span class="chip sum">요약</span>' : ""}${a.r ? `<span class="chip warn">${esc(REVIEW_LABEL[a.r] || a.r)}</span>` : ""}</span>
+    </button>${open ? `<div class="card-body">${body}</div>` : ""}</article>`;
+}
+$app.addEventListener("click", (e) => {
+  const c = e.target.closest("[data-card]");
+  if (c) { const id = c.dataset.card; S.openCards.has(id) || S.focus === id ? (S.openCards.delete(id), S.focus === id && (S.focus = null)) : S.openCards.add(id); render(); return; }
+  const p = e.target.closest("[data-person]");
+  if (p) { go({ view: "person", person: p.dataset.person }); return; }
+  const d = e.target.closest("[data-date]");
+  if (d) { openDate(d.dataset.date, d.dataset.id); return; }
+});
+
+/* ---------- 달력 ---------- */
+async function renderCalendar() {
+  const months = IDX.months.map((m) => m.ym);
+  if (!months.includes(S.ym)) S.ym = months[0];
+  const mf = await getJSON(`data/m/${S.ym}.json`);
+  const [y, m] = S.ym.split("-").map(Number);
+  const byDay = new Map(mf.days.map((d) => [Number(d.solar.slice(8)), d]));
+  if (!byDay.has(S.day)) S.day = mf.days[0] ? Number(mf.days[0].solar.slice(8)) : 1;
+  const sel = byDay.get(S.day);
+  const pos = months.indexOf(S.ym);
+  const lead = (gregJdn(y, m, 1) + 1) % 7;
+  let cells = WEEK.map((w) => `<div class="wk">${w}</div>`).join("") + '<div class="cell empty"></div>'.repeat(lead);
+  for (let d = 1; d <= monthLen(y, m); d++) {
+    const day = byDay.get(d), n = day ? day.articles.length : 0;
+    cells += `<button class="cell${n ? " has" : ""}${day && day.events ? " ev" : ""}${S.day === d ? " sel" : ""}" data-day="${d}" ${n || (day && day.events) ? "" : "disabled"} aria-label="${d}일 기사 ${n}건">
+      <span class="dnum">${d}</span>${day && day.lunar ? `<span class="lnum">${Number(day.lunar.slice(8))}</span>` : ""}${n ? `<span class="cnt">${n}</span>` : ""}</button>`;
+  }
+  const regnal = mf.days[0] ? mf.days[0].regnal.join(" / ") : "";
+  const monthOpts = months.map((x) => `<option value="${x}"${x === S.ym ? " selected" : ""}>${x.replace("-", "년 ")}월</option>`).join("");
+  let html = `<div class="monthnav">
+      <button class="btn" data-month="${months[pos - 1] || ""}" ${pos > 0 ? "" : "disabled"}>◀ 이전 달</button>
+      <h2>${y}년 ${m}월 <small>${esc(regnal)}</small></h2>
+      <button class="btn" data-month="${months[pos + 1] || ""}" ${pos < months.length - 1 ? "" : "disabled"}>다음 달 ▶</button>
+    </div>
+    <p class="hint"><label for="monthsel">달 고르기 </label><select id="monthsel">${monthOpts}</select> · 칸의 작은 숫자는 음력 날, ★는 주요 사건</p>
+    <div class="calendar">${cells}</div>`;
+  if (sel) {
+    const di = mf.days.indexOf(sel);
+    const lun = sel.lunar ? `음력 ${sel.lunar.slice(0, 4)}년 ${sel.leap ? "윤" : ""}${Number(sel.lunar.slice(5, 7))}월 ${Number(sel.lunar.slice(8))}일` : "";
+    const gz = sel.ganji.filter(Boolean).map((g, i) => g + ["년", "월", "일"][i]).join(" ");
+    html += `<div class="dayhead">
+      <button class="btn" data-day="${di > 0 ? Number(mf.days[di - 1].solar.slice(8)) : ""}" ${di > 0 ? "" : "disabled"} aria-label="앞 날">◀</button>
+      <div><h3>${fmtSolar(sel.solar)} <small class="hint">(그레고리력)</small></h3><p>${esc(lun)} · ${esc(sel.regnal.join(" / "))} · ${esc(gz)}</p></div>
+      <button class="btn" data-day="${di < mf.days.length - 1 ? Number(mf.days[di + 1].solar.slice(8)) : ""}" ${di < mf.days.length - 1 ? "" : "disabled"} aria-label="다음 날">▶</button></div>`;
+    (sel.events || []).forEach((e) => { html += `<div class="event"><strong>★ ${esc(e.name)}</strong><p>${esc(e.desc)}</p><small>해설(검수 전)</small></div>`; });
+    const bc = {}, gc = {};
+    sel.articles.forEach((a) => { bc[a.b] = (bc[a.b] || 0) + 1; (a.g || []).forEach((g) => (gc[g] = (gc[g] || 0) + 1)); });
+    if (Object.keys(bc).length > 1) html += `<div class="filters">${[`<button data-bf="" class="${!S.bookFilter ? "on" : ""}">모든 자료</button>`, ...Object.entries(bc).map(([b, n]) => `<button data-bf="${b}" class="${S.bookFilter === b ? "on" : ""}">${esc(IDX.books[b] || b)} ${n}</button>`)].join("")}</div>`;
+    if (Object.keys(gc).length > 1) html += `<div class="filters">${[`<button data-gf="" class="${!S.filter ? "on" : ""}">전체 ${sel.articles.length}</button>`, ...Object.entries(gc).map(([g, n]) => `<button data-gf="${g}" class="${S.filter === g ? "on" : ""}">${esc(IDX.groups[g] || g)} ${n}</button>`)].join("")}</div>`;
+    html += sel.articles.filter((a) => (!S.filter || (a.g || []).includes(S.filter)) && (!S.bookFilter || a.b === S.bookFilter)).map(cardHTML).join("");
+  }
+  if (mf.monthly.length) html += `<h3 style="margin-top:22px">이 달에 몰아 적은 기사 (${mf.monthly.length}건)</h3><p class="hint">선조수정실록처럼 한 달 치를 한 날에 모아 적은 기사입니다.</p>${mf.monthly.map(cardHTML).join("")}`;
+  $app.innerHTML = html;
+  $app.querySelector("#monthsel").addEventListener("change", (e) => go({ ym: e.target.value, day: 1, focus: null }));
+  $app.querySelectorAll("[data-month]").forEach((b) => b.addEventListener("click", () => b.dataset.month && go({ ym: b.dataset.month, day: 1, focus: null, filter: null, bookFilter: null })));
+  $app.querySelectorAll("[data-day]").forEach((b) => b.addEventListener("click", () => { if (b.dataset.day) { S.day = Number(b.dataset.day); S.focus = null; S.filter = null; S.bookFilter = null; render(); } }));
+  $app.querySelectorAll("[data-gf]").forEach((b) => b.addEventListener("click", () => { S.filter = b.dataset.gf || null; render(); }));
+  $app.querySelectorAll("[data-bf]").forEach((b) => b.addEventListener("click", () => { S.bookFilter = b.dataset.bf || null; render(); }));
+  if (S.focus) { const el = document.getElementById("c-" + S.focus); if (el) el.scrollIntoView({ block: "start" }); }
+}
+
+/* ---------- 주요 사건 ---------- */
+function renderEvents() {
+  $app.innerHTML = `<h2>임진왜란 주요 사건</h2><p class="hint">날짜는 실록 기사에 맞췄고, 설명은 이 앱이 쓴 해설입니다(검수 전). 누르면 그날로 갑니다.</p>
+  <ul class="list ev-list">${IDX.events.map((e) => `<li><button class="go" data-date="${e.solar}" data-id="${esc(e.anchor)}">
+    <span class="ev-date">${dot(e.solar)} · 음력 ${esc(e.lunar)} · ${esc(e.regnal.join(" "))}</span>
+    <span class="ev-name">★ ${esc(e.name)}</span><span class="ev-desc">${esc(e.desc)}</span></button></li>`).join("")}</ul>`;
+}
+
+/* ---------- 검색 ---------- */
+const tnorm = (s) => s.replace(/\s+/g, "").toLowerCase();
+const fnorm = (s) => s.replace(/[^\p{L}\p{N}]+/gu, "").toLowerCase();
+function snippet(text, nq) {
+  const pos = []; let norm = "";
+  for (let i = 0; i < text.length;) { const ch = String.fromCodePoint(text.codePointAt(i)); if (/[\p{L}\p{N}]/u.test(ch)) { const low = ch.toLowerCase(); for (let k = 0; k < low.length; k++) pos.push(i); norm += low; } i += ch.length; }
+  const at = norm.indexOf(nq); if (at < 0) return null;
+  const s = pos[at], e = pos[at + nq.length - 1] + 1;
+  return [text.slice(Math.max(0, s - 36), s), text.slice(s, e), text.slice(e, e + 36)];
+}
+function resultLi(t, solar, id, b, extra = "") {
+  return `<li><button class="go" data-date="${solar}" data-id="${esc(id)}"><span class="r-date">${dot(solar)}</span><span class="r-title">${esc(t)}${extra}</span></button><span class="r-book">${esc(IDX.books[b] || b)}</span></li>`;
+}
+async function renderSearch() {
+  let html = `<h2>검색</h2><form class="searchbar" id="sform"><input id="q" value="${esc(S.q)}" placeholder="${S.mode === "text" ? "한자로: 龜船, 李舜臣, 閑山" : "예: 이순신, 거북선, 평양"}" aria-label="검색어"><button class="btn primary" type="submit">찾기</button></form>
+    <div class="filters" style="margin-top:8px"><button data-mode="title" class="${S.mode === "title" ? "on" : ""}">제목·인물</button><button data-mode="text" class="${S.mode === "text" ? "on" : ""}">원문(한문)</button></div>
+    <p class="hint">${S.mode === "text" ? "원문(한문) 본문에서 찾습니다. 구두점·띄어쓰기는 무시합니다. 처음 한 번은 7년 치 원문(약 14MB)을 내려받아 조금 걸립니다." : "기사 제목(국편 국문 제목·일기 첫머리)과 인물 이름에서 찾습니다. 날짜순."}</p><div id="results"></div>`;
+  $app.innerHTML = html;
+  const box = $app.querySelector("#results");
+  $app.querySelector("#sform").addEventListener("submit", (e) => { e.preventDefault(); S.q = $app.querySelector("#q").value.trim(); renderSearch(); });
+  $app.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => { S.mode = b.dataset.mode; renderSearch(); }));
+  if (!S.q) { box.innerHTML = `<p class="hint">예시: <button class="pchip" data-ex="이순신">이순신</button><button class="pchip" data-ex="거북선">거북선</button><button class="pchip" data-ex="권율">권율</button><button class="pchip" data-ex="龜船" data-exm="text">龜船(원문)</button></p>`;
+    box.querySelectorAll("[data-ex]").forEach((b) => b.addEventListener("click", () => { S.q = b.dataset.ex; S.mode = b.dataset.exm || "title"; renderSearch(); })); return; }
+  if (S.mode === "title") {
+    const nq = tnorm(S.q);
+    if (!PERSONS) PERSONS = await getJSON("data/persons.json");
+    const ppl = Object.entries(PERSONS).filter(([, p]) => p.ko === S.q || p.hj === S.q || (nq.length >= 2 && (p.ko || "").startsWith(nq)))
+      .sort((a, b) => b[1].docs.length - a[1].docs.length).slice(0, 12);
+    const hits = IDX.titles.filter((t) => tnorm(t[0]).includes(nq));
+    let out = "";
+    if (ppl.length) out += `<div class="panel"><h3>인물</h3><ul class="list">${ppl.map(([pid, p]) => `<li><button class="go" data-person="${esc(pid)}"><span class="r-title"><strong>${esc(p.ko)}</strong> <span class="hj">${esc(p.hj || "")}</span> <span class="hint">${p.born || p.died ? `${p.born || "?"}~${p.died || "?"} · ` : ""}${esc(p.kind || "")}${p.kind ? " · " : ""}기사 ${p.docs.length}건</span></span></button></li>`).join("")}</ul></div>`;
+    out += `<p class="stats">「${esc(S.q)}」 제목에서 ${hits.length.toLocaleString()}건</p><ul class="list">${hits.slice(0, 300).map((t) => resultLi(...t)).join("")}</ul>${hits.length > 300 ? '<p class="hint">앞 300건만 보입니다. 더 구체적으로 찾아 보세요.</p>' : ""}`;
+    box.innerHTML = out;
+    return;
+  }
+  const nq = fnorm(S.q);
+  if ([...nq].length < 2) { box.innerHTML = '<p class="hint">두 글자 이상 입력해 주세요.</p>'; return; }
+  box.innerHTML = '<p class="loading" id="prog">원문을 내려받는 중…</p>';
+  const hits = []; let done = 0;
+  const months = IDX.months.map((m) => m.ym);
+  const q0 = S.q;
+  for (const ym of months) {
+    const mf = await getJSON(`data/m/${ym}.json`);
+    if (S.q !== q0 || S.view !== "search") return;
+    const arts = [...mf.days.flatMap((d) => d.articles.map((a) => [a, d.solar])), ...mf.monthly.map((a) => [a, a.range[0]])];
+    for (const [a, solar] of arts) { const sn = snippet(a.x, nq); if (sn) hits.push([a, solar, sn]); }
+    done++; const pr = document.getElementById("prog"); if (pr) pr.textContent = `원문 확인 중… ${done}/${months.length}개월, ${hits.length}건`;
+  }
+  hits.sort((x, y) => x[1].localeCompare(y[1]));
+  box.innerHTML = `<p class="stats">「${esc(S.q)}」 원문에서 ${hits.length.toLocaleString()}건</p><ul class="list">${hits.slice(0, 300).map(([a, solar, [b, mm, af]]) => resultLi(a.t, solar, a.id, a.b, `<span class="snip">…${esc(b)}<mark>${esc(mm)}</mark>${esc(af)}…</span>`)).join("")}</ul>${hits.length > 300 ? '<p class="hint">앞 300건만 보입니다.</p>' : ""}`;
+}
+
+/* ---------- 인물 ---------- */
+async function renderPerson() {
+  if (!PERSONS) PERSONS = await getJSON("data/persons.json");
+  const p = PERSONS[S.person];
+  if (!p) { $app.innerHTML = '<p class="hint">이 인물 정보가 없습니다.</p>'; return; }
+  const T = IDX.titles;
+  const facts = [p.born || p.died ? `${p.born || "?"}~${p.died || "?"}` : "", p.bon && `본관 ${p.bon}`, p.ja && `자 ${p.ja}`, p.ho && `호 ${p.ho}`, p.siho && `시호 ${p.siho}`, p.kind].filter(Boolean).join(" · ");
+  $app.innerHTML = `<p><button class="btn" id="back">◀ 검색으로</button></p>
+    <h2>${esc(p.ko)} <span class="hj">${esc(p.hj || "")}</span></h2><p>${esc(facts)}</p>
+    <p class="hint">1592~1598년 기사 ${p.docs.length}건(원문 인명 색인 기준). 인물 정보: 국사편찬위원회 실록 부가정보.</p>
+    ${p.off.length ? `<div class="panel"><h3>이 시기 관직 기록 ${p.off.length}건</h3><ul class="list offs">${p.off.map(([d, o, s]) => `<li><span class="r-date">${dot(T[d][1])}</span><span class="r-title">${esc(o)}${s && s !== "현직" ? ` <span class="hint">(${esc(s)})</span>` : ""}</span></li>`).join("")}</ul></div>` : ""}
+    <h3>나오는 기사 (날짜순)</h3><ul class="list">${p.docs.map((d) => resultLi(...T[d])).join("")}</ul>`;
+  $app.querySelector("#back").addEventListener("click", () => go({ view: "search" }));
+}
+
+/* ---------- 날짜 검수 ---------- */
+async function renderReview() {
+  if (!REVIEW) REVIEW = await getJSON("data/review.json");
+  let done = {};
+  try { done = JSON.parse(localStorage.getItem("imjin-review") || "{}"); } catch (e) { done = {}; }
+  $app.innerHTML = `<h2>날짜 검수</h2><p class="hint">기사 머리의 일진(날짜 간지)과 음력 표가 맞지 않은 기사입니다. 같은 책·같은 달·같은 차이끼리 묶었습니다. 확인 표시는 이 브라우저에만 기억됩니다.</p>
+    ${REVIEW.map((g) => `<div class="panel"><label><input type="checkbox" data-done="${esc(g.key)}" ${done[g.key] ? "checked" : ""}> <strong>${esc(g.bookName)} ${esc(g.lunarMonth)}</strong> · ${esc(g.label)}${g.delta ? ` (${g.delta > 0 ? "+" : ""}${g.delta}일)` : ""} · ${g.items.length}건</label>
+      <div class="rtable-wrap"><table class="rtable"><thead><tr><th>음력 일</th><th>원문 일진</th><th>표 날짜</th><th>쓰는 날짜</th><th>기사</th></tr></thead><tbody>
+      ${g.items.map((it) => `<tr><td>${it.lunarDay ?? "?"}일</td><td>${esc(it.ganji || "-")}</td><td>${esc(it.tableSolar || "-")}</td><td>${esc(it.solar || "-")}</td><td>${it.solar || it.tableSolar ? `<button class="pchip" data-date="${it.solar || it.tableSolar}" data-id="${esc(it.id)}">${esc(it.t || it.id)}</button>` : esc(it.t)}</td></tr>`).join("")}
+      </tbody></table></div></div>`).join("")}`;
+  $app.querySelectorAll("[data-done]").forEach((c) => c.addEventListener("change", () => { done[c.dataset.done] = c.checked; try { localStorage.setItem("imjin-review", JSON.stringify(done)); } catch (e) {} }));
+}
+
+async function render() {
+  setMenu();
+  try {
+    if (!IDX) IDX = await getJSON("data/index.json");
+    if (S.view === "calendar") await renderCalendar();
+    else if (S.view === "events") renderEvents();
+    else if (S.view === "search") await renderSearch();
+    else if (S.view === "person") await renderPerson();
+    else if (S.view === "review") await renderReview();
+  } catch (err) {
+    $app.innerHTML = `<p class="hint">자료를 불러오지 못했습니다(${esc(err.message)}). 새로고침해 보세요.</p>`;
+  }
+}
+render();
+</script>

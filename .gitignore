@@ -9,3 +9,5 @@ out/
 .venv/
 pipeline/data/gen/
 *.sqlite-journal
+artifact/*/data/
+artifact/*/fonts/
