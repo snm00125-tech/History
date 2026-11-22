@@ -136,6 +136,7 @@ web/             Next.js + TypeScript 정적 사이트(output: export). public/d
 - **조선 주요 사건** `pipeline/events/joseon.json`(55건): 각 사건을 실록 기사(anchor)에 묶고 그 기사 날짜를 쓴다. 수정실록처럼 달 단위 기사면 `lunar`로 날짜를 지정.
   설명(desc)은 이 앱이 쓴 해설 → verified=false, 화면에 "해설(검수 전)" 표시. 내보내기 `events.json` + 그날 `days[].events`.
   화면: 첫 화면 「조선 주요 사건」(시기별), 달력 ★ 표시, 그날 상단 사건 상자.
+- **왕별 연표** `/kings/`(`kings.json`): 27왕, 재위 막대 = 그 왕 실록의 첫~끝 기사(양력). 펼치면 연도별 그 왕 실록 기사 수 막대(누르면 그해 첫 달로), 재위 중 주요 사건.
   난중일기·징비록은 공공데이터에 없다.
 - 글꼴: Pretendard(npm `pretendard`, 사이트에 내장).
 

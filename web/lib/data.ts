@@ -72,6 +72,19 @@ export const loadMonth = (ym: string) => get<MonthFile>(`m/${ym}.json`);
 export const loadOtd = (md: string) => get<OtdItem[]>(`otd/${md}.json`);
 export const loadEvents = () => get<EventItem[]>("events.json");
 
+export type KingItem = {
+  king: string;
+  book: string;
+  start: string; // 그 왕 실록 첫 날짜 기사 (양력)
+  end: string;
+  jdnStart: number;
+  jdnEnd: number;
+  articles: number;
+  years: Record<string, number>; // 양력 연도 → 그 왕 실록 기사 수
+  events: { name: string; solar: string }[];
+};
+export const loadKings = () => get<KingItem[]>("kings.json");
+
 /** 원문 사이트: 실록(w로 시작)은 조선왕조실록 사이트, 그 밖은 한국사데이터베이스 */
 export const sourceUrl = (id: string) =>
   id.startsWith("w")

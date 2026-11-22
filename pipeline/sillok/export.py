@@ -77,6 +77,38 @@ def day_info(jdn: int) -> dict:
     }
 
 
+# 왕 → 그 왕의 실록 (재위 범위·기사 수를 이 실록 기사로 잡는다)
+KING_BOOKS = [
+    ("태조", "waa"), ("정종", "wba"), ("태종", "wca"), ("세종", "wda"), ("문종", "wea"), ("단종", "wfa"),
+    ("세조", "wga"), ("예종", "wha"), ("성종", "wia"), ("연산군", "wja"), ("중종", "wka"), ("인종", "wla"),
+    ("명종", "wma"), ("선조", "wna"), ("광해군", "woa"), ("인조", "wpa"), ("효종", "wqa"), ("현종", "wra"),
+    ("숙종", "wsa"), ("경종", "wta"), ("영조", "wua"), ("정조", "wva"), ("순조", "wwa"), ("헌종", "wxa"),
+    ("철종", "wya"), ("고종", "wza"), ("순종", "wzb"),
+]
+
+
+def build_kings(con, events: list[dict]) -> list[dict]:
+    """왕별: 그 왕 실록의 첫·끝 날짜 기사, 기사 수, 양력 연도별 기사 수(모든 자료), 재위 중 주요 사건."""
+    out = []
+    for king, book in KING_BOOKS:
+        r = con.execute("SELECT MIN(jdn_start), MAX(jdn_end), COUNT(*) FROM article WHERE book=? AND jdn_start IS NOT NULL",
+                        (book,)).fetchone()
+        if not r[0]:
+            continue
+        j0, j1, n = r
+        y0, y1 = int(day_info(j0)["solar"][:4]), int(day_info(j1)["solar"][:4])
+        out.append({"king": king, "book": book, "start": day_info(j0)["solar"], "end": day_info(j1)["solar"],
+                    "jdnStart": j0, "jdnEnd": j1, "articles": n, "years": {},
+                    "events": [{"name": e["name"], "solar": e["solar"]} for e in events if j0 <= e["jdn"] <= j1]})
+    # 연도별 기사 수: 그 왕 실록 기사만 (다른 자료와 섞지 않는다)
+    for k in out:
+        years: dict[int, int] = defaultdict(int)
+        for (j,) in con.execute("SELECT jdn_start FROM article WHERE book=? AND jdn_start IS NOT NULL", (k["book"],)):
+            years[int(day_info(j)["solar"][:4])] += 1
+        k["years"] = {str(y): years[y] for y in sorted(years)}
+    return out
+
+
 def _ym(jdn: int) -> tuple[str, str]:
     s = day_info(jdn)["solar"]
     return s[:7], s[5:]
@@ -167,6 +199,8 @@ def export(db: str, out: str) -> dict:
                 if any(x["king"] == k for x in kings):
                     continue
                 kings.append({"king": k, "first": mi["ym"]})
+    kings_full = build_kings(con, events)
+    (outp / "kings.json").write_text(json.dumps(kings_full, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (outp / "events.json").write_text(json.dumps(events, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     index = {"books": books, "groups": GROUP_NAMES, "months": month_index, "kings": kings,
              "total": sum(mi["n"] for mi in month_index) + len(undated), "undated": len(undated),

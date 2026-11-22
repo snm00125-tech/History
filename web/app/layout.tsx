@@ -13,9 +13,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko">
       <body>
         <header className="top">
+          <div className="top-inner">
           <Link href="/" className="brand">
             조선 기록 <span>날짜별 보기</span>
           </Link>
+          <nav className="topnav">
+            <Link href="/kings/">왕별 연표</Link>
+          </nav>
+          </div>
         </header>
         <main>{children}</main>
         <footer className="foot">

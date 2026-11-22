@@ -44,7 +44,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 button:disabled { cursor: default; opacity: 0.4; }
 
 .top { border-bottom: 1px solid var(--line); background: var(--panel); }
-.brand { display: block; max-width: 960px; margin: 0 auto; padding: 14px 16px; font-weight: 700; font-size: 1.15rem; color: var(--ink); text-decoration: none; }
+.top-inner { max-width: 960px; margin: 0 auto; padding: 14px 16px; display: flex; align-items: baseline; flex-wrap: wrap; }
+.brand { display: inline-block; font-weight: 700; font-size: 1.15rem; color: var(--ink); text-decoration: none; }
 .brand span { color: var(--accent); }
 main { max-width: 960px; margin: 0 auto; padding: 16px; }
 .foot { max-width: 960px; margin: 24px auto; padding: 0 16px 24px; font-size: 0.8rem; color: var(--muted); }
@@ -131,3 +132,37 @@ main { max-width: 960px; margin: 0 auto; padding: 16px; }
 .event { background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
 .event p { margin: 4px 0; }
 .event small { color: var(--muted); }
+
+.topnav { display: inline-flex; gap: 14px; margin-left: 18px; font-weight: 500; font-size: 0.95rem; }
+.topnav a { color: var(--muted); text-decoration: none; }
+.topnav a:hover { color: var(--accent); }
+.kingsview h2 { margin: 0 0 4px; }
+.kaxis { position: relative; height: 18px; margin: 12px 0 2px 64px; margin-right: 128px; font-size: 0.72rem; color: var(--muted); }
+.kaxis span { position: absolute; transform: translateX(-50%); }
+.klist { list-style: none; margin: 0; padding: 0; }
+.klist li { border-bottom: 1px solid var(--line); }
+.krow { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; padding: 6px 0; text-align: left; }
+.krow:hover .kname { color: var(--accent); }
+.kname { flex: 0 0 56px; font-weight: 600; font-size: 0.92rem; }
+.ktrack { position: relative; flex: 1; height: 12px; background: var(--line); border-radius: 4px; }
+.kbar { position: absolute; top: 0; bottom: 0; background: var(--accent); border-radius: 4px; }
+.kmeta { flex: 0 0 120px; font-size: 0.78rem; color: var(--muted); text-align: right; white-space: nowrap; }
+.kdetail { padding: 4px 0 14px 64px; }
+.kdetail p { margin: 4px 0; font-size: 0.88rem; }
+.ychart { margin: 8px 0; }
+.ychart-read { min-height: 1.4em; }
+.ybars { display: flex; align-items: flex-end; gap: 2px; height: 120px; border-bottom: 1px solid var(--line); }
+.ybar { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 3px; }
+.ybar-fill { display: block; width: 100%; background: var(--accent); opacity: 0.75; border-radius: 4px 4px 0 0; }
+.ybar.on .ybar-fill, .ybar:focus .ybar-fill { opacity: 1; }
+.ybar-ev { position: absolute; top: -2px; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: var(--ink); }
+.ybars-axis { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); }
+.kevents { list-style: none; padding: 0; margin: 6px 0 0; font-size: 0.88rem; }
+.kevents a { color: var(--ink); text-decoration: none; }
+.kevents a:hover { color: var(--accent); }
+@media (max-width: 600px) {
+  .kmeta { flex-basis: 64px; font-size: 0.7rem; }
+  .kdur { display: none; }
+  .kaxis { margin-right: 72px; }
+  .kdetail { padding-left: 0; }
+}
