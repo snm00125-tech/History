@@ -13,8 +13,7 @@ import {
   formatLunar,
   formatSolar,
   loadIndex,
-  loadMonth,
-} from "@/lib/data";
+  loadMonth, parseYmd, astroYear, yearLabel, ymKey, ymLabel } from "@/lib/data";
 
 const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -44,7 +43,7 @@ function ViewInner() {
       .catch(() => setMissing(true));
   }, [ym]);
 
-  const [y, m] = ym.split("-").map(Number);
+  const [y, m] = parseYmd(ym);
   const byDay = useMemo(() => {
     const map = new Map<number, Day>();
     mf?.days.forEach((d) => map.set(Number(d.solar.slice(8)), d));
@@ -59,7 +58,7 @@ function ViewInner() {
   const pos = idx?.months.findIndex((x) => x.ym === ym) ?? -1;
   const nearest = useMemo(() => {
     if (!idx || pos >= 0) return null;
-    return idx.months.find((x) => x.ym > ym) ?? null;
+    return idx.months.find((x) => ymKey(x.ym) > ymKey(ym)) ?? null;
   }, [idx, pos, ym]);
   const prev = idx && pos > 0 ? idx.months[pos - 1].ym : null;
   const next = idx && pos >= 0 && pos < idx.months.length - 1 ? idx.months[pos + 1].ym : null;
@@ -72,7 +71,7 @@ function ViewInner() {
 
   const grid = useMemo(() => {
     if (!y || !m) return [];
-    const days = daysOfMonth(y, m);
+    const days = daysOfMonth(astroYear(y), m);
     if (!days.length) return [];
     const lead = weekday(days[0].jdn);
     return [...Array(lead).fill(null), ...days];
@@ -104,8 +103,8 @@ function ViewInner() {
           ◀ 이전 달
         </button>
         <h2>
-          {y}년 {m}월
-          {mf?.days[0] && <small> · {mf.days[0].regnal.join(" / ")}</small>}
+          {yearLabel(y)} {m}월
+          {mf?.days[0]?.regnal.length ? <small> · {mf.days[0].regnal.join(" / ")}</small> : null}
         </h2>
         <button disabled={!next} onClick={() => next && goto(next)}>
           다음 달 ▶
@@ -117,7 +116,7 @@ function ViewInner() {
           이 달에는 기사가 없습니다.{" "}
           {nearest && (
             <Link href={`/view/?ym=${nearest.ym}`}>
-              다음 기록: {nearest.ym.replace("-", "년 ")}월 →
+              다음 기록: {ymLabel(nearest.ym)} →
             </Link>
           )}
         </p>
@@ -162,7 +161,7 @@ function ViewInner() {
                 {formatSolar(sel)} <small>({sel.cal === "G" ? "그레고리력" : "율리우스력"})</small>
               </h3>
               <p>
-                {formatLunar(sel)} · {sel.regnal.join(" / ")} · {formatGanji(sel)}
+                {[formatLunar(sel), sel.regnal.join(" / "), formatGanji(sel)].filter(Boolean).join(" · ")}
               </p>
             </div>
             <button disabled={!nextDay} onClick={() => nextDay && goto(ym, nextDay.solar.slice(8))}>

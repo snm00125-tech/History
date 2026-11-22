@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { type EventItem, type Index, type OtdItem, loadEvents, loadIndex, loadOtd } from "@/lib/data";
+import { type EventItem, type Index, type OtdItem, loadEvents, loadIndex, loadOtd, parseYmd, yearLabel } from "@/lib/data";
+
+const DYNASTIES = ["고구려", "백제", "신라", "고려", "조선"];
+const dynastyOf = (k: string) => DYNASTIES.find((d) => k.startsWith(d + " ")) ?? "조선";
 
 function todayMd() {
   const d = new Date();
@@ -30,10 +33,10 @@ export default function Home() {
 
   function go(e: React.FormEvent) {
     e.preventDefault();
-    const m = /^(\d{3,4})-(\d{1,2})-(\d{1,2})$/.exec(date.trim());
-    if (!m) return setErr("날짜를 1592-05-23처럼 적어 주세요");
-    const ym = `${m[1].padStart(4, "0")}-${m[2].padStart(2, "0")}`;
-    router.push(`/view/?ym=${ym}&d=${Number(m[3])}`);
+    const m = /^(-?)(\d{1,4})-(\d{1,2})-(\d{1,2})$/.exec(date.trim());
+    if (!m) return setErr("날짜를 1592-05-23처럼 적어 주세요 (기원전은 -57-04-15처럼)");
+    const ym = `${m[1] ? "-" + m[2].padStart(3, "0") : m[2].padStart(4, "0")}-${m[3].padStart(2, "0")}`;
+    router.push(`/view/?ym=${ym}&d=${Number(m[4])}`);
   }
 
   const [mm, dd] = md.split("-").map(Number);
@@ -88,7 +91,7 @@ export default function Home() {
                   {list.map((e) => (
                     <li key={e.anchor + e.name}>
                       <Link href={`/view/?ym=${e.solar.slice(0, 7)}&d=${Number(e.solar.slice(8))}#ev`}>
-                        <span className="ev-year">{Number(e.solar.slice(0, 4))}</span> {e.name}
+                        <span className="ev-year">{parseYmd(e.solar)[0]}</span> {e.name}
                       </Link>
                     </li>
                   ))}
@@ -101,13 +104,22 @@ export default function Home() {
 
       <section className="panel">
         <h2>왕별로 보기</h2>
-        <div className="kings">
-          {idx?.kings.map((k) => (
-            <Link key={k.king} href={`/view/?ym=${k.first}`} className="king">
-              {k.king}
-            </Link>
-          ))}
-        </div>
+        {DYNASTIES.map((dy) => {
+          const ks = (idx?.kings ?? []).filter((k) => dynastyOf(k.king) === dy);
+          if (!ks.length) return null;
+          return (
+            <div key={dy}>
+              <h3 className="dynasty">{dy}</h3>
+              <div className="kings">
+                {ks.map((k) => (
+                  <Link key={k.king} href={`/view/?ym=${k.first}`} className="king">
+                    {dy === "조선" ? k.king : k.king.slice(dy.length + 1)}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </section>
 
       <section className="panel">
@@ -133,7 +145,7 @@ export default function Home() {
               ).map(([y, items]) => (
                 <li key={y}>
                   <Link href={`/view/?ym=${y}-${String(mm).padStart(2, "0")}&d=${dd}`} className="otd-year">
-                    {Number(y)}년
+                    {yearLabel(Number(y))}
                   </Link>
                   <span className="otd-titles">
                     {items.slice(0, 3).map((it) => (

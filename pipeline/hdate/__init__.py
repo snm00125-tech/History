@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from . import ganji
 from .calendar import SolarDate, jdn_to_solar, solar_to_jdn
+from . import ancient, lunar as _lunar
 from .lunar import LunarDate, jdn_to_lunar, lunar_to_jdn
 from .regnal import RegnalYear, from_lunar, to_lunar_year
 
@@ -23,6 +24,7 @@ class DateInfo:
     year_ganji: str
     month_ganji: str | None
     day_ganji: str
+    lunar_estimated: bool = False  # 1000년 이전: hdate.ancient 추정 역법
 
     def as_dict(self) -> dict:
         return {
@@ -39,7 +41,8 @@ class DateInfo:
 
 
 def describe(jdn: int) -> DateInfo:
-    lu = jdn_to_lunar(jdn)
+    est = jdn < _lunar.FIRST_JDN
+    lu = LunarDate(*ancient.jdn_to_lunar(jdn)) if est else jdn_to_lunar(jdn)
     mi = ganji.month_index(lu.year, lu.month, lu.leap)
     return DateInfo(
         jdn=jdn,
@@ -49,6 +52,7 @@ def describe(jdn: int) -> DateInfo:
         year_ganji=ganji.name(ganji.year_index(lu.year)),
         month_ganji=None if mi is None else ganji.name(mi),
         day_ganji=ganji.name(ganji.day_index(jdn)),
+        lunar_estimated=est,
     )
 
 

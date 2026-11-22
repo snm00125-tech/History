@@ -223,3 +223,4 @@ main { max-width: 960px; margin: 0 auto; padding: 16px; }
 .termlist dd { color: var(--ink); }
 .rule { margin: 2px 0 0 26px; }
 .rule.open { color: var(--warn); }
+.dynasty { font-size: 0.95rem; margin: 0.8rem 0 0.3rem; color: var(--muted, #666); }

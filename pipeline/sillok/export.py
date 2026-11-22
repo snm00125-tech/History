@@ -90,16 +90,42 @@ BOOKS = {
 }
 
 
+from hdate.lunar import FIRST_JDN as FIRST_LUNAR_JDN  # noqa: E402
+
+JOSEON_REGNAL_END = 2417777  # 1907-07-20(그레고리력): 고종 양위 다음 날. 이후는 원자료 표기(순종)만
+
+KH_BOOKS = ("sg", "kr", "kj", "th")  # 삼국사기·고려사·고려사절요·국편 연표 (load_kh)
+
+
+NO_FULLTEXT = ("sjw",)  # 원문 색인에서 뺀 책(승정원일기 270만 건: 색인 크기·메모리)
+NO_OTD = ("sjw",)  # 「오늘의 실록」에서 뺀 책
+YEAR_FILE_BEFORE, YEAR_FILE_AFTER = 1392, 1910  # 이 밖의 연도는 달 파일을 해 파일 y/<연>.json으로 묶는다
+
+
+def year_file(y: int) -> bool:
+    return y < YEAR_FILE_BEFORE or y > YEAR_FILE_AFTER
+
+
+def ym_key(ym: str) -> tuple[int, int]:
+    return int(ym[:-3]), int(ym[-2:])
+
+
+def ystr(y: int) -> str:
+    """천문 연도 → 화면 문자열. 기원전은 '-057'(= 기원전 57년)로 자릿수를 맞춘다."""
+    return f"{y:04d}" if y > 0 else f"-{1 - y:03d}"
+
+
 @lru_cache(maxsize=None)
 def day_info(jdn: int) -> dict:
     d = describe(jdn)
     lun = d.lunar
-    regs = labels_for(lun) if lun else []
+    regs = labels_for(lun) if lun and lun.year >= 1392 and jdn < JOSEON_REGNAL_END else []
     return {
         "jdn": jdn,
-        "solar": f"{d.solar.year:04d}-{d.solar.month:02d}-{d.solar.day:02d}",
+        "solar": f"{ystr(d.solar.year)}-{d.solar.month:02d}-{d.solar.day:02d}",
         "cal": "G" if d.solar.gregorian else "J",
-        "lunar": f"{lun.year}-{lun.month:02d}-{lun.day:02d}" if lun else None,
+        "lunar": f"{ystr(lun.year)}-{lun.month:02d}-{lun.day:02d}" if lun else None,
+        **({"est": True} if d.lunar_estimated else {}),
         "leap": bool(lun and lun.leap),
         "regnal": [f"{r.king} {'즉위년' if r.year == 0 else f'{r.year}년'}" for r in regs],
         "ganji": [d.year_ganji, d.month_ganji, d.day_ganji],
@@ -204,7 +230,6 @@ def export(db: str, out: str) -> dict:
         sums[aid] = {"title": t, "sentences": [x["text"] for x in json.loads(s)],
                      "commentary": [x["text"] for x in json.loads(c or "[]")], "author": au}
 
-    months: dict[str, dict] = defaultdict(lambda: {"days": defaultdict(list), "monthly": []})
     search_docs: list[tuple[str, str, str, str]] = []
     search_texts: list[str] = []
     otd: dict[str, list] = defaultdict(list)
@@ -217,62 +242,118 @@ def export(db: str, out: str) -> dict:
                                            JOIN person p ON p.id = ap.person_id ORDER BY ap.article_id, ap.n DESC"""):
             if len(persons_of[aid]) < 12 and ko:
                 persons_of[aid].append([pid, ko])
-    rows = con.execute("""SELECT id, book, lunar_year, lunar_month, lunar_leap, date_precision,
-                                 jdn_start, jdn_end, jdn_status, needs_review, text, regnal_src
-                          FROM article ORDER BY jdn_start, book, id""")
-    for aid, book, ly, lm, leap, prec, js, je, status, review, text, reg in rows:
-        art = {"id": aid, "b": book, "t": titles.get(aid, ""), "g": groups.get(aid, []), "x": text}
-        if reg and book.startswith("wz"):  # 고종·순종: 원자료 재위연도 표기를 왕력으로 쓴다(양력 시기 포함)
-            art["reg"] = reg.split(" ")[0] + " " + reg.split(" ")[1]
-        if aid in sums:
-            art["s"] = sums[aid]
-        if aid in persons_of:
-            art["p"] = persons_of[aid]
-        ks = match_terms(art["t"], terms_sorted, [n for _, n in persons_of.get(aid, [])])
-        if ks:
-            art["k"] = ks
-        if review:
-            art["r"] = status
-        search_docs.append((art["t"], day_info(js)["solar"] if js is not None else "", aid, book))
-        search_texts.append(text)
-        if prec == "day":
-            ym, md = _ym(js)
-            months[ym]["days"][js].append(art)
-            otd[md].append({"y": day_info(js)["solar"][:4], "id": aid, "b": book, "t": art["t"]})
-        elif prec == "month" and js is not None:
-            ym, _ = _ym(js)
-            art["lunarMonth"] = f"{ly}-{lm:02d}" + ("(윤)" if leap else "")
-            art["range"] = [day_info(js)["solar"], day_info(je)["solar"]]
-            months[ym]["monthly"].append(art)
-        else:
-            art["lunarMonth"] = f"{ly}-{lm:02d}" if ly and lm else None
-            undated.append(art)
-
     events = load_events(con)
     ev_by_jdn = defaultdict(list)
     for e in events:
         ev_by_jdn[e["jdn"]].append({"name": e["name"], "desc": e["desc"], "anchor": e["anchor"]})
-        months[e["solar"][:7]]  # 사건만 있는 달도 파일을 만든다
+    ev_months = sorted({day_info(j)["solar"][:7] for j in ev_by_jdn}, key=ym_key)
+    (outp / "y").mkdir()
     month_index = []
-    for ym in sorted(months):
-        m = months[ym]
+    lunar_src: dict[int, str] = {}  # 1000년 이전 날: 원자료 음력 표기(추정 역법보다 우선)
+    year_buf: dict[str, dict] = {}
+    year_cur = [None]
+
+    def flush_year():
+        if year_cur[0] is not None and year_buf:
+            (outp / "y" / f"{year_cur[0]}.json").write_text(
+                json.dumps(year_buf, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        year_buf.clear()
+
+    def write_month(ym, m):
         days = []
         for j in [j for j in ev_by_jdn if day_info(j)["solar"][:7] == ym and j not in m["days"]]:
             m["days"][j] = []
         for j, arts in sorted(m["days"].items()):
             info = dict(day_info(j))
+            if j in lunar_src:  # 원자료 음력 (예: 고려사 918~999)
+                ls = lunar_src.pop(j)
+                info["lunar"], info["leap"] = ls.rstrip("윤"), ls.endswith("윤")
+                info.pop("est", None)
             regs = list(dict.fromkeys(a["reg"] for a in arts if "reg" in a))
-            if regs:  # 고종·순종은 원자료 표기가 우선
+            if regs:  # 고종·순종·고려·삼국은 원자료 표기가 우선
                 info["regnal"] = regs
             if j in ev_by_jdn:
                 info["events"] = ev_by_jdn[j]
             days.append({**info, "articles": arts})
         n = sum(len(d["articles"]) for d in days) + len(m["monthly"])
-        (outp / "m" / f"{ym}.json").write_text(
-            json.dumps({"ym": ym, "days": days, "monthly": m["monthly"]}, ensure_ascii=False, separators=(",", ":")),
-            encoding="utf-8")
-        kings = sorted({r.split()[0] for d in days for r in d["regnal"]})
+        obj = {"ym": ym, "days": days, "monthly": m["monthly"]}
+        y = ym[:-3]
+        if year_file(int(y)):
+            if year_cur[0] != y:
+                flush_year()
+                year_cur[0] = y
+            year_buf[ym] = obj
+        else:
+            (outp / "m" / f"{ym}.json").write_text(json.dumps(obj, ensure_ascii=False, separators=(",", ":")),
+                                                 encoding="utf-8")
+        kings = sorted({" ".join(r.split()[:-1]) for d in days for r in d["regnal"]})
         month_index.append({"ym": ym, "n": n, "kings": kings})
+
+    def new_month():
+        return {"days": defaultdict(list), "monthly": []}
+
+    cur_ym, cur = None, new_month()
+
+    def advance(ym):
+        nonlocal cur_ym, cur
+        if ym == cur_ym:
+            return
+        if cur_ym is not None:
+            write_month(cur_ym, cur)
+        while ev_months and ym_key(ev_months[0]) <= ym_key(ym):  # 사건만 있는 달도 파일을 만든다
+            e = ev_months.pop(0)
+            if e != ym and e != cur_ym:
+                write_month(e, new_month())
+        cur_ym, cur = ym, new_month()
+
+    rows = con.execute("""SELECT id, book, lunar_year, lunar_month, lunar_leap, date_precision,
+                                 jdn_start, jdn_end, jdn_status, needs_review, text, regnal_src, sources, lunar_day
+                          FROM article ORDER BY jdn_start, book, id""")
+    for aid, book, ly, lm, leap, prec, js, je, status, review, text, reg, srcs, ld in rows:
+        art = {"id": aid, "b": book, "t": titles.get(aid, ""), "g": groups.get(aid, []), "x": text}
+        if reg and book.startswith("wz"):  # 고종·순종: 원자료 재위연도 표기를 왕력으로 쓴다(양력 시기 포함)
+            art["reg"] = reg.split(" ")[0] + " " + reg.split(" ")[1]
+        elif reg and book in KH_BOOKS:
+            art["reg"] = reg
+        if status.startswith("est_"):
+            art["e"] = 1  # 날짜가 추정 역법(1000년 이전)
+        if book == "th" and srcs.startswith("{") and json.loads(srcs).get("imp") == "1":
+            art["imp"] = 1  # 국편 연표 중요도 1
+        if aid in sums:
+            art["s"] = sums[aid]
+        if aid in persons_of:
+            art["p"] = persons_of[aid]
+        if book != "sjw":
+            ks = match_terms(art["t"], terms_sorted, [n for _, n in persons_of.get(aid, [])])
+            if ks:
+                art["k"] = ks
+        if review:
+            art["r"] = status
+        search_docs.append((art["t"], day_info(js)["solar"] if js is not None else "", aid, book))
+        search_texts.append("" if book in NO_FULLTEXT else text)
+        if prec == "day":
+            if status == "solar_src" and js < FIRST_LUNAR_JDN and ly is not None:
+                lunar_src.setdefault(js, f"{ystr(ly)}-{lm:02d}-{ld:02d}" + ("윤" if leap else ""))
+            ym, md = _ym(js)
+            advance(ym)
+            cur["days"][js].append(art)
+            if book not in NO_OTD:
+                otd[md].append({"y": day_info(js)["solar"][:4], "id": aid, "b": book, "t": art["t"]})
+        elif prec in ("month", "year") and js is not None:
+            ym, _ = _ym(js)
+            advance(ym)
+            art["lunarMonth"] = (f"{ystr(ly)}-{lm:02d}" + ("(윤)" if leap else "")) if prec == "month" \
+                else f"{ystr(ly)}년(달 미상)"
+            art["range"] = [day_info(js)["solar"], day_info(je)["solar"]]
+            cur["monthly"].append(art)
+        else:
+            art["lunarMonth"] = f"{ystr(ly)}-{lm:02d}" if ly and lm else None
+            undated.append(art)
+    if cur_ym is not None:
+        write_month(cur_ym, cur)
+    for e in ev_months:
+        write_month(e, new_month())
+    flush_year()
     for md, items in otd.items():
         (outp / "otd" / f"{md}.json").write_text(json.dumps(items, ensure_ascii=False, separators=(",", ":")),
                                                  encoding="utf-8")
@@ -297,6 +378,7 @@ def export(db: str, out: str) -> dict:
     (outp / "kings.json").write_text(json.dumps(kings_full, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (outp / "events.json").write_text(json.dumps(events, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     index = {"books": books, "groups": GROUP_NAMES, "months": month_index, "kings": kings,
+             "yearFile": [YEAR_FILE_BEFORE, YEAR_FILE_AFTER],
              "total": sum(mi["n"] for mi in month_index) + len(undated), "undated": len(undated),
              "summarized": len(sums)}
     (outp / "index.json").write_text(json.dumps(index, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")

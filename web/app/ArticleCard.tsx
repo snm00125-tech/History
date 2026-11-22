@@ -41,6 +41,8 @@ export function ArticleCard({
           ))}
           {a.s && <span className="chip sum">요약</span>}
           {a.r && <span className="chip warn">{REVIEW_LABEL[a.r] ?? a.r}</span>}
+          {a.e && <span className="chip" title="1000년 이전 음력은 옛 역법 규칙으로 계산한 추정 날짜입니다">날짜 추정</span>}
+          {a.imp && <span className="chip">★ 국편 주요 연표</span>}
         </span>
       </button>
       {open && (

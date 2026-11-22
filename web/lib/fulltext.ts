@@ -1,5 +1,5 @@
 // 원문(한문) 본문 검색 (pipeline/sillok/fulltext_index.py와 같은 규칙: 글자·숫자만 남기고 소문자, 두 글자 색인)
-import type { Article, MonthFile } from "@/lib/data";
+import { type Article, loadMonth } from "@/lib/data";
 import { type Doc, docsByIds } from "@/lib/search";
 
 type Meta = { docs: number; shards: number; cut: number };
@@ -81,7 +81,7 @@ async function articleText(doc: Doc): Promise<string | null> {
     const und = await get<Article[]>("undated.json", []);
     return und.find((a) => a.id === id)?.x ?? null;
   }
-  const mf = await get<MonthFile | null>(`m/${solar.slice(0, 7)}.json`, null);
+  const mf = await loadMonth(solar.slice(0, 7)).catch(() => null);
   if (!mf) return null;
   for (const d of mf.days) for (const a of d.articles) if (a.id === id) return a.x;
   return mf.monthly.find((a) => a.id === id)?.x ?? null;
