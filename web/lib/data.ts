@@ -24,6 +24,19 @@ export type Day = {
   regnal: string[];
   ganji: [string | null, string | null, string | null];
   articles: Article[];
+  events?: { name: string; desc: string; anchor: string }[];
+};
+
+export type EventItem = {
+  name: string;
+  era: string;
+  desc: string;
+  anchor: string;
+  jdn: number;
+  solar: string;
+  lunar: string | null;
+  regnal: string[];
+  verified: boolean;
 };
 
 export type MonthFile = { ym: string; days: Day[]; monthly: Article[] };
@@ -57,6 +70,7 @@ function get<T>(path: string): Promise<T> {
 export const loadIndex = () => get<Index>("index.json");
 export const loadMonth = (ym: string) => get<MonthFile>(`m/${ym}.json`);
 export const loadOtd = (md: string) => get<OtdItem[]>(`otd/${md}.json`);
+export const loadEvents = () => get<EventItem[]>("events.json");
 
 /** 원문 사이트: 실록(w로 시작)은 조선왕조실록 사이트, 그 밖은 한국사데이터베이스 */
 export const sourceUrl = (id: string) =>

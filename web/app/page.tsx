@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { type Index, type OtdItem, loadIndex, loadOtd } from "@/lib/data";
+import { type EventItem, type Index, type OtdItem, loadEvents, loadIndex, loadOtd } from "@/lib/data";
 
 function todayMd() {
   const d = new Date();
@@ -17,9 +17,11 @@ export default function Home() {
   const [otd, setOtd] = useState<OtdItem[] | null>(null);
   const [date, setDate] = useState("1592-05-23");
   const [err, setErr] = useState("");
+  const [events, setEvents] = useState<EventItem[]>([]);
 
   useEffect(() => {
     loadIndex().then(setIdx).catch((e) => setErr(String(e)));
+    loadEvents().then(setEvents).catch(() => setEvents([]));
   }, []);
   useEffect(() => {
     setOtd(null);
@@ -53,6 +55,34 @@ export default function Home() {
         </form>
         <p className="hint">양력 날짜 (1582년 10월 15일 이전은 율리우스력)</p>
       </section>
+
+      {events.length > 0 && (
+        <section className="panel">
+          <h2>조선 주요 사건</h2>
+          <p className="hint">사건 설명은 이 앱이 쓴 해설입니다(검수 전). 날짜는 실록 기사에 맞췄습니다.</p>
+          <div className="eras">
+            {Object.entries(
+              events.reduce<Record<string, EventItem[]>>((acc, e) => {
+                (acc[e.era] ??= []).push(e);
+                return acc;
+              }, {}),
+            ).map(([era, list]) => (
+              <div key={era} className="era">
+                <h3>{era}</h3>
+                <ul>
+                  {list.map((e) => (
+                    <li key={e.anchor + e.name}>
+                      <Link href={`/view/?ym=${e.solar.slice(0, 7)}&d=${Number(e.solar.slice(8))}#ev`}>
+                        <span className="ev-year">{Number(e.solar.slice(0, 4))}</span> {e.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="panel">
         <h2>왕별로 보기</h2>

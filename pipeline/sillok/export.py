@@ -23,7 +23,31 @@ from pathlib import Path
 from hdate import describe
 from hdate.regnal import labels_for
 
+from hdate import lunar_to_jdn
+
 from .category import GROUP_NAMES
+
+EVENTS = Path(__file__).parents[1] / "events" / "joseon.json"
+
+
+def load_events(con) -> list[dict]:
+    """주요 사건: anchor 기사 날짜(또는 지정한 음력 날짜) → JDN. 설명은 해설(verified=false)."""
+    if not EVENTS.exists():
+        return []
+    out = []
+    for e in json.loads(EVENTS.read_text(encoding="utf-8"))["events"]:
+        row = con.execute("SELECT jdn, jdn_start FROM article WHERE id=?", (e["anchor"],)).fetchone()
+        if e.get("lunar"):
+            y, m, d, lp = e["lunar"]
+            j = lunar_to_jdn(y, m, d, lp)
+        elif row and (row[0] or row[1]):
+            j = row[0] or row[1]
+        else:
+            raise SystemExit(f"사건 날짜를 정할 수 없음: {e['name']} ({e['anchor']})")
+        info = day_info(j)
+        out.append({"name": e["name"], "era": e["era"], "desc": e["desc"], "anchor": e["anchor"], "jdn": j,
+                    "solar": info["solar"], "lunar": info["lunar"], "regnal": info["regnal"], "verified": False})
+    return sorted(out, key=lambda x: x["jdn"])
 
 BOOKS = {
     "waa": "태조실록", "wba": "정종실록", "wca": "태종실록", "wda": "세종실록", "wea": "문종실록",
@@ -106,15 +130,24 @@ def export(db: str, out: str) -> dict:
             art["lunarMonth"] = f"{ly}-{lm:02d}" if ly and lm else None
             undated.append(art)
 
+    events = load_events(con)
+    ev_by_jdn = defaultdict(list)
+    for e in events:
+        ev_by_jdn[e["jdn"]].append({"name": e["name"], "desc": e["desc"], "anchor": e["anchor"]})
+        months[e["solar"][:7]]  # 사건만 있는 달도 파일을 만든다
     month_index = []
     for ym in sorted(months):
         m = months[ym]
         days = []
+        for j in [j for j in ev_by_jdn if day_info(j)["solar"][:7] == ym and j not in m["days"]]:
+            m["days"][j] = []
         for j, arts in sorted(m["days"].items()):
             info = dict(day_info(j))
             regs = list(dict.fromkeys(a["reg"] for a in arts if "reg" in a))
             if regs:  # 고종·순종은 원자료 표기가 우선
                 info["regnal"] = regs
+            if j in ev_by_jdn:
+                info["events"] = ev_by_jdn[j]
             days.append({**info, "articles": arts})
         n = sum(len(d["articles"]) for d in days) + len(m["monthly"])
         (outp / "m" / f"{ym}.json").write_text(
@@ -134,6 +167,7 @@ def export(db: str, out: str) -> dict:
                 if any(x["king"] == k for x in kings):
                     continue
                 kings.append({"king": k, "first": mi["ym"]})
+    (outp / "events.json").write_text(json.dumps(events, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     index = {"books": books, "groups": GROUP_NAMES, "months": month_index, "kings": kings,
              "total": sum(mi["n"] for mi in month_index) + len(undated), "undated": len(undated),
              "summarized": len(sums)}

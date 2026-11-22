@@ -133,8 +133,9 @@ function ViewInner() {
             return (
               <button
                 key={c.day}
-                className={`cell${n ? " has" : ""}${selDay === c.day ? " sel" : ""}`}
-                disabled={!n}
+                className={`cell${n ? " has" : ""}${d?.events ? " ev" : ""}${selDay === c.day ? " sel" : ""}`}
+                disabled={!n && !d?.events}
+                title={d?.events?.map((e) => e.name).join(", ")}
                 onClick={() => goto(ym, c.day)}
               >
                 <span className="dnum">{c.day}</span>
@@ -164,6 +165,18 @@ function ViewInner() {
               ▶
             </button>
           </div>
+          {sel.events?.map((e) => (
+            <div key={e.name} className="event" id="ev">
+              <strong>★ {e.name}</strong>
+              <p>{e.desc}</p>
+              <small>
+                해설(검수 전) ·{" "}
+                <a href={`#${e.anchor}`} onClick={() => document.getElementById(e.anchor)?.scrollIntoView()}>
+                  관련 실록 기사로
+                </a>
+              </small>
+            </div>
+          ))}
           {Object.keys(bookCounts).length > 1 && (
             <div className="filters">
               <button className={!bookFilter ? "on" : ""} onClick={() => setBookFilter(null)}>
