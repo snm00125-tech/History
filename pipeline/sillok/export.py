@@ -25,6 +25,7 @@ from hdate.regnal import labels_for
 
 from hdate import lunar_to_jdn
 
+from . import search_index
 from .category import GROUP_NAMES
 
 EVENTS = Path(__file__).parents[1] / "events" / "joseon.json"
@@ -136,6 +137,7 @@ def export(db: str, out: str) -> dict:
                      "commentary": [x["text"] for x in json.loads(c or "[]")], "author": au}
 
     months: dict[str, dict] = defaultdict(lambda: {"days": defaultdict(list), "monthly": []})
+    search_docs: list[tuple[str, str, str, str]] = []
     otd: dict[str, list] = defaultdict(list)
     undated = []
     rows = con.execute("""SELECT id, book, lunar_year, lunar_month, lunar_leap, date_precision,
@@ -149,6 +151,7 @@ def export(db: str, out: str) -> dict:
             art["s"] = sums[aid]
         if review:
             art["r"] = status
+        search_docs.append((art["t"], day_info(js)["solar"] if js is not None else "", aid, book))
         if prec == "day":
             ym, md = _ym(js)
             months[ym]["days"][js].append(art)
@@ -199,6 +202,7 @@ def export(db: str, out: str) -> dict:
                 if any(x["king"] == k for x in kings):
                     continue
                 kings.append({"king": k, "first": mi["ym"]})
+    search_stats = search_index.build(search_docs, outp / "s")
     kings_full = build_kings(con, events)
     (outp / "kings.json").write_text(json.dumps(kings_full, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (outp / "events.json").write_text(json.dumps(events, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
@@ -206,7 +210,8 @@ def export(db: str, out: str) -> dict:
              "total": sum(mi["n"] for mi in month_index) + len(undated), "undated": len(undated),
              "summarized": len(sums)}
     (outp / "index.json").write_text(json.dumps(index, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    return {"months": len(month_index), "articles": index["total"], "secs": round(time.perf_counter() - t0, 1)}
+    return {"months": len(month_index), "articles": index["total"], "search": search_stats,
+            "secs": round(time.perf_counter() - t0, 1)}
 
 
 if __name__ == "__main__":

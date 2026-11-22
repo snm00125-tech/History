@@ -18,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             조선 기록 <span>날짜별 보기</span>
           </Link>
           <nav className="topnav">
+            <Link href="/search/">검색</Link>
             <Link href="/kings/">왕별 연표</Link>
           </nav>
           </div>

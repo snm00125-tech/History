@@ -1,20 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type Article, REVIEW_LABEL, sourceSite, sourceUrl } from "@/lib/data";
 
 export function ArticleCard({
   a,
   books,
   groups,
+  focus = false,
 }: {
   a: Article;
   books: Record<string, string>;
   groups: Record<string, string>;
+  focus?: boolean; // 주소 #기사ID로 들어오면 펼치고 화면으로 가져온다
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(focus);
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (focus) {
+      setOpen(true);
+      ref.current?.scrollIntoView({ block: "start" });
+    }
+  }, [focus]);
   return (
-    <article className={`card${open ? " open" : ""}`} id={a.id}>
+    <article ref={ref} className={`card${open ? " open" : ""}${focus ? " focus" : ""}`} id={a.id}>
       <button className="card-head" onClick={() => setOpen(!open)} aria-expanded={open}>
         <span className="card-title">{a.t || a.s?.title || "(제목 없음)"}</span>
         <span className="card-meta">

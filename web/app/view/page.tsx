@@ -28,6 +28,10 @@ function ViewInner() {
   const [missing, setMissing] = useState(false);
   const [filter, setFilter] = useState<string | null>(null);
   const [bookFilter, setBookFilter] = useState<string | null>(null);
+  const [hash, setHash] = useState("");
+  useEffect(() => {
+    setHash(decodeURIComponent(window.location.hash.slice(1)));
+  }, [ym, dParam]);
 
   useEffect(() => {
     loadIndex().then(setIdx);
@@ -202,7 +206,7 @@ function ViewInner() {
             </div>
           )}
           {shown.map((a) => (
-            <ArticleCard key={a.id} a={a} books={books} groups={groups} />
+            <ArticleCard key={a.id} a={a} books={books} groups={groups} focus={!!mf && hash === a.id} />
           ))}
         </section>
       )}
@@ -212,7 +216,7 @@ function ViewInner() {
           <h3>이 달에 몰아 적은 기사 ({mf.monthly.length}건)</h3>
           <p className="hint">선조수정실록처럼 한 달 치를 한 날에 모아 적었거나, 비변사등록 좌목처럼 달 단위로 적은 기사입니다.</p>
           {mf.monthly.map((a) => (
-            <ArticleCard key={a.id} a={a} books={books} groups={groups} />
+            <ArticleCard key={a.id} a={a} books={books} groups={groups} focus={!!mf && hash === a.id} />
           ))}
         </section>
       )}

@@ -48,6 +48,21 @@ export default function Home() {
       )}
 
       <section className="panel">
+        <h2>제목으로 찾기</h2>
+        <form
+          className="datejump"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const v = (e.currentTarget.elements.namedItem("q") as HTMLInputElement).value.trim();
+            if (v) router.push(`/search/?q=${encodeURIComponent(v)}`);
+          }}
+        >
+          <input name="q" placeholder="예: 이순신, 훈민정음, 거북선" aria-label="검색어" />
+          <button type="submit">찾기</button>
+        </form>
+      </section>
+
+      <section className="panel">
         <h2>날짜로 찾기</h2>
         <form onSubmit={go} className="datejump">
           <input value={date} onChange={(e) => setDate(e.target.value)} aria-label="양력 날짜" placeholder="1592-05-23" />
