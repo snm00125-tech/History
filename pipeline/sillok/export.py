@@ -111,6 +111,28 @@ def build_kings(con, events: list[dict]) -> list[dict]:
     return out
 
 
+REVIEW_LABEL = {"ganji_adjusted": "일진에 맞춰 날짜 조정", "ganji_conflict": "일진 불일치(표 날짜 유지)",
+                "invalid_date": "날짜 오류(표에 없는 날)"}
+
+
+def build_review(con, titles: dict, books: dict) -> list[dict]:
+    """검수 대상(needs_review=1)을 (책, 음력 연·월, 윤, 상태, 차이) 묶음으로. 한 달이 통째로 밀린 경우가 한 묶음이 된다."""
+    groups: dict[tuple, dict] = {}
+    for aid, book, ly, lm, lp, ld, gz, j, jt, st, dl in con.execute(
+            """SELECT id, book, lunar_year, lunar_month, lunar_leap, lunar_day, day_ganji_src, jdn, jdn_table,
+                      jdn_status, ganji_delta FROM article WHERE needs_review=1 ORDER BY COALESCE(jdn, jdn_table), id"""):
+        key = (book, ly, lm, lp, st, dl)
+        g = groups.get(key)
+        if g is None:
+            g = groups[key] = {"key": f"{book}-{ly}-{lm}{'L' if lp else ''}-{st}-{dl}", "book": book,
+                               "bookName": books.get(book, book), "lunarMonth": f"{ly}년 {'윤' if lp else ''}{lm}월",
+                               "status": st, "label": REVIEW_LABEL.get(st, st), "delta": dl, "items": []}
+        g["items"].append({"id": aid, "t": titles.get(aid, ""), "lunarDay": ld, "ganji": gz,
+                           "solar": day_info(j)["solar"] if j else None,
+                           "tableSolar": day_info(jt)["solar"] if jt else None})
+    return sorted(groups.values(), key=lambda g: -len(g["items"]))
+
+
 def _ym(jdn: int) -> tuple[str, str]:
     s = day_info(jdn)["solar"]
     return s[:7], s[5:]
@@ -214,6 +236,8 @@ def export(db: str, out: str) -> dict:
     search_stats = search_index.build(search_docs, outp / "s")
     doc_of = {d[2]: i for i, d in enumerate(search_docs)}
     person_stats = export_persons(con, outp, doc_of, lambda j: day_info(j)["solar"])
+    review = build_review(con, titles, books)
+    (outp / "review.json").write_text(json.dumps(review, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     kings_full = build_kings(con, events)
     (outp / "kings.json").write_text(json.dumps(kings_full, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (outp / "events.json").write_text(json.dumps(events, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
