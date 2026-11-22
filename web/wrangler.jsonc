@@ -1,0 +1,10 @@
+{
+  // Cloudflare Workers 정적 자산 배포: npm run build 후 npx wrangler deploy
+  "name": "history",
+  "compatibility_date": "2026-11-01",
+  "account_id": "fa49726b79350a5b7137af2f93dedcbc",
+  "assets": {
+    "directory": "./out",
+    "not_found_handling": "404-page"
+  }
+}
