@@ -11,3 +11,4 @@ pipeline/data/gen/
 *.sqlite-journal
 artifact/*/data/
 artifact/*/fonts/
+pipeline/data/geo/kr_places.json
