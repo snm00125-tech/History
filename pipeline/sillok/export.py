@@ -94,7 +94,7 @@ from hdate.lunar import FIRST_JDN as FIRST_LUNAR_JDN  # noqa: E402
 
 JOSEON_REGNAL_END = 2417777  # 1907-07-20(그레고리력): 고종 양위 다음 날. 이후는 원자료 표기(순종)만
 
-KH_BOOKS = ("sg", "kr", "kj", "th")  # 삼국사기·고려사·고려사절요·국편 연표 (load_kh)
+KH_BOOKS = ("sg", "kr", "kj", "th", "ko", "dh")  # 삼국사기·고려사·고려사절요·국편 연표 (load_kh)
 
 
 NO_FULLTEXT = ("sjw",)  # 원문 색인에서 뺀 책(승정원일기 270만 건: 색인 크기·메모리)
