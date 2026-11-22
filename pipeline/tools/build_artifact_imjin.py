@@ -67,6 +67,7 @@ def main(db: str, src: str, out: str) -> None:
         p["off"] = [[doc_of[a], o, s] for a, o, s in p["off"]]
     (data / "persons.json").write_text(json.dumps(persons, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
+    shutil.copy(srcp / "terms.json", data / "terms.json")
     review = json.loads((srcp / "review.json").read_text(encoding="utf-8"))
     review = [g for g in review if any(it["id"] in ids for it in g["items"])]
     (data / "review.json").write_text(json.dumps(review, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")

@@ -131,7 +131,7 @@ footer.wrap { color: var(--muted); font-size: .78rem; padding-block: 0 24px; }
 "use strict";
 const $app = document.getElementById("app");
 const S = { view: "calendar", ym: "1592-05", day: 23, focus: null, filter: null, bookFilter: null, q: "", mode: "title", person: null, openCards: new Set() };
-let IDX = null, PERSONS = null, REVIEW = null;
+let IDX = null, PERSONS = null, REVIEW = null, TERMS = null;
 const cache = new Map();
 const getJSON = (p) => { if (!cache.has(p)) cache.set(p, fetch(p).then((r) => { if (!r.ok) throw new Error(p + " " + r.status); return r.json(); })); return cache.get(p); };
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -163,6 +163,7 @@ function cardHTML(a) {
   let body = "";
   if (open) {
     if (a.s) body += `<h4>요약 · ${esc(a.s.title)}</h4><ul>${a.s.sentences.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>${(a.s.commentary || []).map((c) => `<p class="commentary">해설: ${esc(c)}</p>`).join("")}`;
+    if (a.k && a.k.length && TERMS) body += `<h4>용어 풀이 (해설·검수 전)</h4>${a.k.map((i) => TERMS[i] ? `<p class="commentary"><strong>${esc(TERMS[i].t)}</strong> <span class="hj">${esc(TERMS[i].h)}</span> — ${esc(TERMS[i].d)}</p>` : "").join("")}`;
     if (a.p && a.p.length) body += `<h4>나오는 인물</h4>${a.p.map(([pid, n]) => `<button class="pchip" data-person="${esc(pid)}">${esc(n)}</button>`).join("")}`;
     body += `<h4>원문</h4><p class="hanmun">${esc(a.x)}</p><a class="ext" href="${sourceUrl(a.id)}" target="_blank" rel="noreferrer">${sourceSite(a.id)}에서 번역·원문 보기 ↗</a>`;
   }
@@ -324,6 +325,7 @@ async function render() {
   setMenu();
   try {
     if (!IDX) IDX = await getJSON("data/index.json");
+    if (!TERMS) TERMS = await getJSON("data/terms.json").catch(() => []);
     if (S.view === "calendar") await renderCalendar();
     else if (S.view === "events") renderEvents();
     else if (S.view === "search") await renderSearch();
