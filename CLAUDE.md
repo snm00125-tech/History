@@ -163,12 +163,14 @@ web/             Next.js + TypeScript 정적 사이트(output: export). public/d
 - **배포 대기**: Cloudflare 계정 fa49726b79350a5b7137af2f93dedcbc, workers.dev 하위 도메인 oreum-cloud → 주소 https://history.oreum-cloud.workers.dev (`web/wrangler.jsonc`).
   토큰이 History 환경의 "네트워크 비밀값"으로 저장돼 있으면 프록시가 Authorization 헤더를 덮어써 wrangler 자산 업로드(임시 JWT)가 401로 실패한다.
   사용자가 할 일: 환경 설정에서 네트워크 비밀값 'Cloudflare API token (history-deploy)' 삭제 → 환경 변수 `CLOUDFLARE_API_TOKEN` 추가 → 새 세션.
-  그 뒤: 원자료 내려받기·적재·export → `cd web && npm run build && npx wrangler deploy`. (api.cloudflare.com은 허용 주소에 추가됨)
+  그 뒤: `bash pipeline/tools/rebuild_all.sh`(원자료 내려받기~빌드, 약 20분) → `cd web && NODE_PATH=$(npm root -g) node scripts/smoke.cjs`(화면 9개 점검) → `npx wrangler deploy`. (api.cloudflare.com은 허용 주소에 추가됨)
 - 사용자가 채팅에 토큰을 한 번 붙여 넣었다(이전 토큰, 삭제 권함).
 
 ## 명령
 
 ```
+bash pipeline/tools/rebuild_all.sh          # 새 세션: 원자료 내려받기 → 적재 → 요약 → 내보내기 → 빌드 (약 20분, 시험 통과 확인함)
+cd web && NODE_PATH=$(npm root -g) node scripts/smoke.cjs   # 빌드한 사이트 화면 9개 점검
 cd pipeline && python3 -m pytest -q --durations=5
 cd pipeline && python3 -m sillok.load data/raw/sillok_15053647/x data/work.sqlite            # 전체 적재 (약 4분, 그 뒤 summaries/*.jsonl 재적재)
 cd pipeline && python3 -m sillok.validate data/raw/sillok_15053647/x wna wnb             # 일진 대조
