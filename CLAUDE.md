@@ -130,6 +130,14 @@ web/             Next.js + TypeScript 정적 사이트(output: export). public/d
   난중일기·징비록은 공공데이터에 없다.
 - 글꼴: Pretendard(npm `pretendard`, 사이트에 내장).
 
+## 남은 일 (사용자에게 다시 알릴 것)
+
+- **배포 대기**: Cloudflare 계정 fa49726b79350a5b7137af2f93dedcbc, workers.dev 하위 도메인 oreum-cloud → 주소 https://history.oreum-cloud.workers.dev (`web/wrangler.jsonc`).
+  토큰이 History 환경의 "네트워크 비밀값"으로 저장돼 있으면 프록시가 Authorization 헤더를 덮어써 wrangler 자산 업로드(임시 JWT)가 401로 실패한다.
+  사용자가 할 일: 환경 설정에서 네트워크 비밀값 'Cloudflare API token (history-deploy)' 삭제 → 환경 변수 `CLOUDFLARE_API_TOKEN` 추가 → 새 세션.
+  그 뒤: 원자료 내려받기·적재·export → `cd web && npm run build && npx wrangler deploy`. (api.cloudflare.com은 허용 주소에 추가됨)
+- 사용자가 채팅에 토큰을 한 번 붙여 넣었다(이전 토큰, 삭제 권함).
+
 ## 명령
 
 ```
